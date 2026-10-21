@@ -1,0 +1,1317 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LMS Explorer • Video Asset Manager</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+    <script type="module" src="/src/main.ts" defer></script>
+  </head>
+
+  <body>
+    <!-- Topo: MenuBar Estilo Aplicativo de Criação Profissional -->
+    <nav class="app-menubar">
+      <div class="menubar-left-cluster">
+        <!-- Logo e Marca do Software -->
+        <div class="app-brand-badge">
+          <svg class="brand-svg-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect width="18" height="18" x="3" y="3" rx="3" />
+            <path d="M7 3v18" />
+            <path d="M3 7.5h4" />
+            <path d="M3 12h18" />
+            <path d="M3 16.5h4" />
+            <path d="M17 3v18" />
+            <path d="M17 7.5h4" />
+            <path d="M17 16.5h4" />
+          </svg>
+          <span class="app-brand-name">LMS Explorer</span>
+        </div>
+
+        <div class="menubar-menus-row">
+          <div class="menubar-item-group">
+            <button class="menubar-btn" data-menu="menu-file">Arquivo</button>
+            <div id="menu-file" class="menubar-dropdown hidden">
+              <div class="menubar-action" id="menu-act-new-project">
+                <span>Novo Projeto...</span>
+                <span class="menubar-shortcut">Ctrl+N</span>
+              </div>
+              <div class="menubar-action" id="menu-act-rename-project">
+                <span>Renomear Projeto...</span>
+                <span class="menubar-shortcut">F2</span>
+              </div>
+              <div class="menubar-action" id="menu-act-password-project">
+                <span>Proteger com Senha...</span>
+              </div>
+              <div class="menubar-action" id="menu-act-manage-folders">
+                <span>Pastas do Projeto...</span>
+              </div>
+              <div class="menubar-action" id="menu-act-add-files">
+                <span>Adicionar Vídeo(s)...</span>
+              </div>
+              <div class="menubar-action" id="menu-act-sync">
+                <span>Sincronizar Arquivos</span>
+                <span class="menubar-shortcut">F5</span>
+              </div>
+              <div class="menubar-divider"></div>
+              <div class="menubar-action danger" id="menu-act-delete-project">
+                <span>Excluir Projeto...</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="menubar-item-group">
+            <button class="menubar-btn" data-menu="menu-edit">Editar</button>
+            <div id="menu-edit" class="menubar-dropdown hidden">
+              <div class="menubar-action" id="menu-act-select-all">
+                <span>Selecionar Todos</span>
+                <span class="menubar-shortcut">Ctrl+A</span>
+              </div>
+              <div class="menubar-action" id="menu-act-clear-select">
+                <span>Desmarcar Todos</span>
+                <span class="menubar-shortcut">Esc</span>
+              </div>
+              <div class="menubar-divider"></div>
+              <div class="menubar-action" id="menu-act-duplicates">
+                <span>Localizar Vídeos Duplicados...</span>
+                <span class="menubar-shortcut">Ctrl+D</span>
+              </div>
+              <div class="menubar-action" id="menu-act-random">
+                <span>Sorteio Aleatório...</span>
+                <span class="menubar-shortcut">Ctrl+R</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="menubar-item-group">
+            <button class="menubar-btn" data-menu="menu-view">Exibir</button>
+            <div id="menu-view" class="menubar-dropdown hidden">
+              <div class="menubar-action" data-set-zoom="small">Ícones Pequenos (P)</div>
+              <div class="menubar-action" data-set-zoom="medium">Ícones Médios (M)</div>
+              <div class="menubar-action" data-set-zoom="large">Ícones Grandes (G)</div>
+              <div class="menubar-divider"></div>
+              <div class="menubar-action" id="menu-act-stats">
+                <span>Estatísticas do Projeto</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="menubar-item-group">
+            <button class="menubar-btn" id="menubar-btn-settings">Configurações</button>
+          </div>
+
+          <div class="menubar-item-group">
+            <button class="menubar-btn" id="menubar-btn-about">Sobre</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="menubar-right-cluster">
+        <button id="btn-toggle-sidebar" class="menubar-icon-btn" title="Alternar Barra Lateral (Ctrl+B)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect width="18" height="18" x="3" y="3" rx="2" />
+            <path d="M9 3v18" />
+          </svg>
+        </button>
+        <div class="window-system-status">
+          <span class="status-pulse-dot"></span>
+          <span class="status-system-label">Pronto</span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Shell do Aplicativo (Sidebar Lateral + Área de Trabalho Principal) -->
+    <div class="app-shell">
+      <!-- Barra Lateral de Navegação (Estilo Eagle App / Linear) -->
+      <aside id="app-sidebar" class="app-sidebar">
+        <!-- Seletor de Workspace / Projeto -->
+        <div class="sidebar-workspace-header">
+          <div class="project-switcher-container">
+            <div style="display: flex; align-items: center; gap: 6px; width: 100%;">
+              <button id="btn-project-dropdown" class="sidebar-project-btn" style="flex: 1; min-width: 0;" title="Trocar ou gerenciar projeto">
+                <div class="project-avatar-badge">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect width="18" height="18" x="3" y="3" rx="2" />
+                    <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" />
+                  </svg>
+                </div>
+                <div class="project-label-group">
+                  <span class="project-eyebrow">PROJETO ATIVO</span>
+                  <span id="current-project-name" class="project-active-title">Carregando...</span>
+                </div>
+                <svg class="chevron-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+              <button id="btn-rename-current-project" class="sidebar-action-pill" style="height: 38px; width: 34px; padding: 0; justify-content: center; flex-shrink: 0;" title="Renomear Projeto Ativo (F2)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Dropdown Flutuante de Projetos -->
+            <div id="project-dropdown-menu" class="notion-dropdown hidden">
+              <div class="dropdown-header">SEUS PROJETOS</div>
+              <div id="project-dropdown-list" class="dropdown-list"></div>
+              <div class="dropdown-divider"></div>
+              <button id="btn-open-create-project-modal" class="dropdown-action-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M5 12h14" />
+                  <path d="M12 5v14" />
+                </svg>
+                <span>Novo Projeto...</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navegação Rápida da Biblioteca -->
+        <div class="sidebar-nav-section">
+          <div class="sidebar-section-title">BIBLIOTECA</div>
+          <button id="nav-all-videos" class="sidebar-nav-item active">
+            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect width="18" height="18" x="3" y="3" rx="2" />
+              <path d="M7 3v18" />
+              <path d="M17 3v18" />
+              <path d="M3 12h18" />
+            </svg>
+            <span class="nav-label">Todos os Vídeos</span>
+            <span id="sidebar-count-all" class="nav-counter-pill">0</span>
+          </button>
+
+          <button id="filter-fav-btn" class="sidebar-nav-item">
+            <svg class="nav-svg-icon star-icon-nav" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            <span class="nav-label">Favoritos</span>
+            <span id="sidebar-count-favs" class="nav-counter-pill">0</span>
+          </button>
+
+          <button id="nav-untagged-videos" class="sidebar-nav-item">
+            <svg class="nav-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+            </svg>
+            <span class="nav-label">Sem Tags</span>
+            <span id="sidebar-count-untagged" class="nav-counter-pill">0</span>
+          </button>
+        </div>
+
+        <!-- Seção: Pastas Mapeadas -->
+        <div class="sidebar-nav-section">
+          <div class="sidebar-section-header">
+            <span class="sidebar-section-title">PASTAS</span>
+            <button id="btn-manage-folders" class="sidebar-action-pill" title="Adicionar ou gerenciar pastas vinculadas">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14" />
+                <path d="M12 5v14" />
+              </svg>
+              <span id="folders-count-label">Pastas (0)</span>
+            </button>
+          </div>
+          <div id="sidebar-folders-list" class="sidebar-folders-container"></div>
+        </div>
+
+        <!-- Seção: Tags do Projeto -->
+        <div class="sidebar-nav-section flex-grow">
+          <div class="sidebar-section-header">
+            <span class="sidebar-section-title">TAGS</span>
+            <button id="btn-sidebar-add-tag" class="sidebar-action-pill" title="Criar nova tag no projeto">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14" />
+                <path d="M12 5v14" />
+              </svg>
+              <span>+ Tag</span>
+            </button>
+          </div>
+          <!-- Input Inline para Nova Tag na Sidebar -->
+          <div id="sidebar-new-tag-wrap" class="sidebar-new-tag-wrap hidden">
+            <input 
+              type="text" 
+              id="sidebar-new-tag-input" 
+              class="sidebar-new-tag-input" 
+              placeholder="+ Nova tag... (Enter)" 
+              autocomplete="off" 
+              spellcheck="false" 
+            />
+            <button id="sidebar-new-tag-close" class="sidebar-new-tag-close-btn" title="Fechar (Esc)">✕</button>
+          </div>
+          <div id="tag-filter-list" class="sidebar-tags-container"></div>
+        </div>
+
+        <!-- Rodapé da Sidebar -->
+        <div class="sidebar-footer">
+          <button id="btn-view-stats" class="sidebar-footer-btn" title="Ver Estatísticas e Métricas">
+            <svg class="footer-btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 3v18h18" />
+              <path d="m19 9-5 5-4-4-3 3" />
+            </svg>
+            <span id="stats-badge" class="stats-text">0 vídeos</span>
+          </button>
+          <button id="btn-open-settings" class="sidebar-footer-btn icon-only" title="Configurações">
+            <svg class="footer-btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Painel Central de Conteúdo -->
+      <div class="app-main-content">
+        <!-- Top Toolbar de Controle do Grid -->
+        <header id="app-content-topbar" class="app-content-topbar">
+          <div class="topbar-left-controls">
+            <div class="view-title-cluster">
+              <h1 id="current-view-title" class="current-view-title">Todos os Vídeos</h1>
+              <span id="current-view-counter" class="view-counter-badge">0</span>
+            </div>
+
+            <!-- Campo de Busca Estilizado -->
+            <div class="search-box-wrapper">
+              <svg class="search-box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+              <input 
+                id="search-input" 
+                type="text" 
+                placeholder="Buscar arquivos de vídeo..." 
+                spellcheck="false"
+                autocomplete="off"
+              />
+              <button id="btn-clear-search" class="clear-search-btn hidden" title="Limpar busca">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+              <kbd class="search-kbd-hint">/</kbd>
+            </div>
+          </div>
+
+          <div class="topbar-right-controls">
+            <!-- Alternador de Modo de Exibição (Grade vs Tabela Detalhada) -->
+            <div class="view-segmented-control" title="Alternar Modo de Exibição">
+              <button id="btn-view-grid" class="view-btn active" title="Visualização em Grade de Cards">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                  <rect width="7" height="7" x="3" y="3" rx="1" />
+                  <rect width="7" height="7" x="14" y="3" rx="1" />
+                  <rect width="7" height="7" x="14" y="14" rx="1" />
+                  <rect width="7" height="7" x="3" y="14" rx="1" />
+                </svg>
+                <span>Grade</span>
+              </button>
+              <button id="btn-view-table" class="view-btn" title="Visualização em Tabela / Lista Detalhada">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+                <span>Tabela</span>
+              </button>
+            </div>
+
+            <!-- Seletor de Agrupamento Dinâmico (Group By) -->
+            <div class="group-selector-container">
+              <button id="btn-group-dropdown" class="app-pill-btn" title="Agrupar vídeos por critérios dinâmicos">
+                <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                <span id="group-label">Agrupar: Nenhum</span>
+                <svg class="chevron-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+              <div id="group-dropdown-menu" class="sort-dropdown-menu hidden">
+                <div class="group-option active" data-group="none">Nenhum (Padrão)</div>
+                <div class="group-option" data-group="folder">Pasta de Origem</div>
+                <div class="group-option" data-group="tag">Tag Principal</div>
+                <div class="group-option" data-group="date">Data de Modificação</div>
+                <div class="group-option" data-group="format">Formato (MP4, MKV...)</div>
+                <div class="group-option" data-group="status">Status (Assistidos / Novos)</div>
+              </div>
+            </div>
+
+            <!-- Seletor de Ordenação (Sort By) -->
+            <div class="sort-selector-container">
+              <button id="btn-sort-dropdown" class="app-pill-btn">
+                <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="m3 16 4 4 4-4" />
+                  <path d="M7 20V4" />
+                  <path d="m21 8-4-4-4 4" />
+                  <path d="M17 4v16" />
+                </svg>
+                <span id="sort-label">Nome (A-Z)</span>
+                <svg class="chevron-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+              <div id="sort-dropdown-menu" class="sort-dropdown-menu hidden">
+                <div class="sort-option" data-sort="name-asc">Nome: A → Z</div>
+                <div class="sort-option" data-sort="name-desc">Nome: Z → A</div>
+                <div class="sort-option" data-sort="date-desc">Data: Mais Recentes</div>
+                <div class="sort-option" data-sort="date-asc">Data: Mais Antigos</div>
+                <div class="sort-option" data-sort="size-desc">Tamanho: Maior → Menor</div>
+                <div class="sort-option" data-sort="size-asc">Tamanho: Menor → Maior</div>
+                <div class="sort-option" data-sort="duration-desc">Duração: Mais Longos</div>
+                <div class="sort-option" data-sort="duration-asc">Duração: Mais Curtos</div>
+                <div class="sort-option" data-sort="plays-desc">Mais Assistidos</div>
+                <div class="sort-option" data-sort="plays-asc">Nunca Assistidos</div>
+                <div class="sort-option" data-sort="recent-played">Assistidos Recentemente</div>
+              </div>
+            </div>
+
+            <!-- Segmented Control de Zoom [P | M | G] -->
+            <div class="zoom-segmented-control" title="Ajustar tamanho dos cards">
+              <button class="zoom-btn" data-size="small">P</button>
+              <button class="zoom-btn active" data-size="medium">M</button>
+              <button class="zoom-btn" data-size="large">G</button>
+            </div>
+
+            <!-- Botão Abrir Aleatório -->
+            <button id="btn-open-random-modal" class="app-pill-btn primary-glow" title="Abrir Sorteador Aleatório com filtros (Ctrl+R)">
+              <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                <path d="M16 8h.01" />
+                <path d="M8 8h.01" />
+                <path d="M8 16h.01" />
+                <path d="M16 16h.01" />
+                <path d="M12 12h.01" />
+              </svg>
+              <span>Abrir Aleatório</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- Barra de Progresso Discreta de Thumbnails com Controles de Pausa/Parar -->
+        <div id="thumb-progress-container" class="thumb-progress-banner hidden">
+          <div class="progress-details">
+            <div class="progress-left-info">
+              <span class="progress-spinner-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                </svg>
+              </span>
+              <span id="thumb-progress-title">Processando miniaturas e durações em segundo plano...</span>
+            </div>
+            <div class="progress-controls-group">
+              <span id="thumb-progress-count" class="progress-counter">0 / 0</span>
+              <button id="btn-pause-thumbs" class="progress-control-btn" title="Pausar extração temporariamente">
+                <svg viewBox="0 0 24 24" fill="currentColor"><rect width="4" height="16" x="6" y="4" rx="1"/><rect width="4" height="16" x="14" y="4" rx="1"/></svg>
+                <span>Pausar</span>
+              </button>
+              <button id="btn-resume-thumbs" class="progress-control-btn hidden" title="Continuar extração">
+                <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+                <span>Continuar</span>
+              </button>
+              <button id="btn-cancel-thumbs" class="progress-control-btn" title="Cancelar extração">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="progress-bar-bg">
+            <div id="thumb-progress-fill" class="progress-bar-inner" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Viewport Principal de Conteúdo -->
+        <main id="main-scroll-container" class="app-main-viewport">
+          <!-- Estado Vazio: Nenhum Projeto -->
+          <div id="empty-state-no-project" class="empty-state-view hidden">
+            <div class="empty-state-visual-circle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect width="18" height="18" x="3" y="3" rx="2" />
+                <path d="M7 3v18" />
+                <path d="M17 3v18" />
+                <path d="M3 12h18" />
+              </svg>
+            </div>
+            <h2 class="empty-state-heading">Nenhum Projeto Selecionado</h2>
+            <p class="empty-state-text">Crie um projeto para unificar pastas de vídeos, catalogar com tags e manter favoritos isolados.</p>
+            <button id="btn-create-first-project" class="app-pill-btn primary-glow large">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14" />
+                <path d="M12 5v14" />
+              </svg>
+              <span>Criar Primeiro Projeto</span>
+            </button>
+          </div>
+
+          <!-- Estado Vazio: Projeto sem pastas vinculadas -->
+          <div id="empty-state-no-folders" class="empty-state-view hidden">
+            <div class="empty-state-visual-circle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+              </svg>
+            </div>
+            <h2 class="empty-state-heading">Nenhum Vídeo ou Pasta Vinculada</h2>
+            <p class="empty-state-text">Vincule pastas inteiras de vídeos ou simplesmente arraste e solte arquivos de vídeo avulsos diretamente nesta janela.</p>
+            <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+              <button id="btn-add-folder-empty" class="app-pill-btn primary-glow large">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M5 12h14" />
+                  <path d="M12 5v14" />
+                </svg>
+                <span>Vincular Pasta</span>
+              </button>
+              <button id="btn-add-file-empty" class="app-pill-btn subtle large">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="6 4 20 12 6 20 6 4" fill="currentColor" />
+                </svg>
+                <span>Adicionar Vídeo(s)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Grid de Vídeos Estilo Gallery View -->
+          <div id="video-grid" class="video-gallery-grid hidden size-medium"></div>
+
+          <!-- Estado Sem Resultados da Busca -->
+          <div id="no-results" class="no-results-view hidden">
+            <div class="empty-state-visual-circle small">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+            </div>
+            <p>Nenhum vídeo corresponde aos filtros ou busca.</p>
+          </div>
+        </main>
+
+        <!-- VISÃO DE SUB-APLICATIVO INTEGRADA (Full Workspace View) -->
+        <div id="workspace-subview" class="workspace-subview hidden">
+          <!-- Header de Navegação do Sub-aplicativo -->
+          <div class="subview-header">
+            <div class="subview-header-left">
+              <button id="subview-btn-back" class="subview-back-btn" title="Voltar para os vídeos (Esc)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="19" y1="12" x2="5" y2="12"></line>
+                  <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                <span>Voltar</span>
+                <kbd class="subview-kbd">Esc</kbd>
+              </button>
+              <div class="subview-breadcrumb">
+                <span id="subview-breadcrumb-parent">Projeto</span>
+                <span class="subview-breadcrumb-sep">/</span>
+                <span id="subview-breadcrumb-current" class="subview-breadcrumb-active">Fontes de Mídia</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Conteúdo com Scroll Suave -->
+          <div class="subview-body">
+            <!-- 1. PAINEL DE FONTES DE MÍDIA -->
+            <div id="subview-pane-sources" class="subview-pane hidden">
+              <div class="subview-pane-header">
+                <div class="subview-pane-title-group">
+                  <h2>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
+                    </svg>
+                    Fontes de Mídia do Projeto
+                  </h2>
+                  <p>Gerencie as pastas do seu computador e arquivos avulsos associados a este projeto.</p>
+                </div>
+                <div class="subview-actions-cluster">
+                  <button id="subview-btn-add-folder" class="app-pill-btn primary-glow">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                    <span>+ Vincular Nova Pasta</span>
+                  </button>
+                  <button id="subview-btn-sync" class="app-pill-btn sync-btn" title="Verificar novos arquivos e sincronizar">
+                    <svg class="btn-svg sync-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                      <path d="M3 3v5h5" />
+                      <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                      <path d="M16 21h5v-5" />
+                    </svg>
+                    <span id="subview-sync-btn-label">Sincronizar Arquivos</span>
+                  </button>
+                  <button id="subview-btn-project-password" class="app-pill-btn" title="Configurar senha de proteção deste projeto">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    <span id="subview-password-btn-label">Proteger com Senha</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Banner de Status de Sincronização -->
+              <div id="subview-sync-status-banner" class="sync-status-banner hidden">
+                <svg class="sync-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                  <path d="M3 3v5h5"/>
+                  <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                  <path d="M16 21h5v-5"/>
+                </svg>
+                <span id="subview-sync-status-text">Sincronizando fontes de mídia com o disco...</span>
+              </div>
+
+              <!-- Seção de Pastas Vinculadas -->
+              <div class="subview-section-card">
+                <div class="subview-section-header">
+                  <div class="subview-section-title-wrap" style="display: flex; align-items: center; gap: 8px;">
+                    <label id="subview-folders-select-all-wrap" class="subview-checkbox-label hidden" style="font-size:0.75rem; display:flex; align-items:center; gap:5px; cursor:pointer; color:var(--text-muted); margin-right:4px;">
+                      <input type="checkbox" id="subview-folders-select-all" class="folder-select-checkbox" style="margin:0;" />
+                      <span>Selecionar Todas</span>
+                    </label>
+                    <span class="subview-section-title">Pastas Vinculadas</span>
+                    <span id="subview-folders-count" class="nav-counter-pill">0</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <button id="subview-btn-batch-remove-folders" class="app-pill-btn danger hidden" style="font-size:0.75rem; padding: 4px 10px; display:inline-flex; align-items:center; gap:5px;">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                      <span id="subview-batch-remove-folders-label">Desvincular (0)</span>
+                    </button>
+                    <label class="subview-toggle-subfolder">
+                      <input type="checkbox" id="subview-toggle-subfolders" />
+                      <span>Incluir Subpastas Recursivamente</span>
+                    </label>
+                  </div>
+                </div>
+                <div id="subview-folders-list" class="subview-folders-list"></div>
+              </div>
+
+              <!-- Seção de Vídeos Avulsos -->
+              <div class="subview-section-card">
+                <div class="subview-section-header">
+                  <div class="subview-section-title-wrap">
+                    <span class="subview-section-title">Vídeos Avulsos Vinculados</span>
+                    <span id="subview-loose-count-badge" class="nav-counter-pill">0</span>
+                  </div>
+                  <button id="subview-btn-add-loose-files" class="app-pill-btn subtle">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                    <span>+ Adicionar Arquivo(s) Avulso(s)</span>
+                  </button>
+                </div>
+                <div class="subview-loose-card">
+                  <div class="folder-icon-circle file-variant">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <polygon points="6 4 20 12 6 20 6 4" />
+                    </svg>
+                  </div>
+                  <div class="subview-loose-text">
+                    <p>Arquivos adicionados individualmente por arrastar e soltar ou seleção de arquivo.</p>
+                    <span class="subview-hint">Dica: Você pode visualizar e filtrar apenas os vídeos avulsos clicando na opção <strong>"Vídeos Avulsos"</strong> na barra lateral esquerda.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. PAINEL DE CONFIGURAÇÕES -->
+            <div id="subview-pane-settings" class="subview-pane hidden">
+              <div class="subview-pane-header">
+                <div class="subview-pane-title-group">
+                  <h2>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    Configurações
+                  </h2>
+                  <p>Ajuste os parâmetros de desempenho, reprodutor multimídia e interface.</p>
+                </div>
+              </div>
+
+              <!-- Seção Reprodução & Interface -->
+              <div class="subview-section-card">
+                <div class="subview-section-title">Reprodução & Interface</div>
+
+                <div class="subview-setting-row">
+                  <div class="subview-setting-info">
+                    <span class="subview-setting-label">Hover Scrubbing (Preview de Vídeo ao Passar o Cursor)</span>
+                    <span class="subview-setting-desc">Avança e exibe quadros dinamicamente ao mover o mouse sobre a miniatura sem precisar abrir o player.</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="subview-setting-hover-scrub" checked />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+
+                <div class="settings-divider"></div>
+
+                <div class="subview-setting-row">
+                  <div class="subview-setting-info">
+                    <span class="subview-setting-label">Reprodutor de Vídeo Preferido</span>
+                    <span class="subview-setting-desc">Reprodutor multimídia que será iniciado ao dar duplo clique no vídeo ou no sorteio.</span>
+                  </div>
+                  <select id="subview-setting-player" class="app-select">
+                    <option value="system">Reprodutor Padrão do Windows</option>
+                    <option value="vlc">VLC Media Player (Recomendado)</option>
+                    <option value="mpv">MPV Player</option>
+                    <option value="mpc">MPC-HC</option>
+                    <option value="wmplayer">Windows Media Player</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Seção Desempenho & FFmpeg -->
+              <div class="subview-section-card">
+                <div class="subview-section-title">Desempenho & Processamento FFmpeg</div>
+
+                <div class="subview-setting-row">
+                  <div class="subview-setting-info">
+                    <span class="subview-setting-label">Concorrência de Extração em Segundo Plano</span>
+                    <span class="subview-setting-desc">Quantidade máxima de vídeos processados em paralelo pelo FFmpeg. Valores menores garantem menor consumo de CPU e RAM.</span>
+                  </div>
+                  <select id="subview-setting-concurrency" class="app-select">
+                    <option value="1">1 vídeo por vez (Silencioso / Econômico)</option>
+                    <option value="2">2 vídeos em paralelo (Super leve)</option>
+                    <option value="3" selected>3 vídeos em paralelo (Recomendado)</option>
+                    <option value="4">4 vídeos em paralelo (Mais rápido)</option>
+                    <option value="8">8 vídeos em paralelo (Ultra-rápido)</option>
+                  </select>
+                </div>
+
+                <div class="settings-divider"></div>
+
+                <div class="subview-setting-row">
+                  <div class="subview-setting-info">
+                    <span class="subview-setting-label">Limpeza de Armazenamento e Miniaturas</span>
+                    <span class="subview-setting-desc">Exclui todos os arquivos de preview em cache (.webp) para liberar espaço. Elas serão regeradas sob demanda automaticamente.</span>
+                  </div>
+                  <button id="subview-btn-clear-cache" class="app-pill-btn danger">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                    <span>Limpar Cache de Miniaturas</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Seção Atalhos de Teclado -->
+              <div class="subview-section-card">
+                <div class="subview-section-title">Atalhos de Teclado</div>
+                <div class="subview-shortcuts-grid">
+                  <div class="subview-shortcut-pill">
+                    <span>Reproduzir vídeo selecionado</span>
+                    <kbd>Espaço</kbd>
+                  </div>
+                  <div class="subview-shortcut-pill">
+                    <span>Alternar Favorito</span>
+                    <kbd>F</kbd>
+                  </div>
+                  <div class="subview-shortcut-pill">
+                    <span>Gerenciar Tags do vídeo</span>
+                    <kbd>T</kbd>
+                  </div>
+                  <div class="subview-shortcut-pill">
+                    <span>Focar campo de Busca</span>
+                    <kbd>/</kbd>
+                  </div>
+                  <div class="subview-shortcut-pill">
+                    <span>Voltar ao grid / Fechar menus</span>
+                    <kbd>Esc</kbd>
+                  </div>
+                  <div class="subview-shortcut-pill">
+                    <span>Sincronizar arquivos</span>
+                    <kbd>F5</kbd>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Seção Sobre -->
+              <div class="subview-section-card">
+                <div class="subview-section-title">Sobre o LMS Video Explorer</div>
+                <p style="font-size:0.82rem; color:var(--text-muted); line-height:1.6; margin:0;">
+                  <strong style="color:var(--text-main);">LMS Video Explorer</strong> • Versão 1.0.0 Pro Suite<br/>
+                  Desenvolvido com <strong>Tauri v2</strong>, <strong>Rust</strong> e <strong>FFmpeg</strong> de alto desempenho.<br/>
+                  Interface responsiva Obsidian Dark Luxe projetada para zero travamentos e segurança total de memória.
+                </p>
+              </div>
+            </div>
+
+            <!-- 3. PAINEL DE ESTATÍSTICAS E MÉTRICAS -->
+            <div id="subview-pane-stats" class="subview-pane hidden">
+              <div class="subview-pane-header">
+                <div class="subview-pane-title-group">
+                  <h2>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                    Métricas & Estatísticas do Projeto
+                  </h2>
+                  <p>Visão geral de volume de arquivos, tempos acumulados de vídeo e categorização por tags.</p>
+                </div>
+              </div>
+
+              <!-- Grid de 4 Cards de Métricas -->
+              <div class="stats-cards-grid">
+                <div class="stat-card">
+                  <div class="stat-number" id="subview-stat-total-videos">0</div>
+                  <div class="stat-desc">Total de Vídeos</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-number" id="subview-stat-total-size">0 GB</div>
+                  <div class="stat-desc">Espaço em Disco</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-number" id="subview-stat-total-duration">0h 0m</div>
+                  <div class="stat-desc">Tempo Total Gravado</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-number" id="subview-stat-total-favs" style="color:#f2c94c;">0</div>
+                  <div class="stat-desc">Vídeos Favoritados</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-number" id="subview-stat-total-plays" style="color:var(--accent-primary);">0</div>
+                  <div class="stat-desc">Total de Reproduções</div>
+                </div>
+              </div>
+
+              <!-- Tags Mais Utilizadas -->
+              <div class="subview-section-card">
+                <div class="subview-section-title">Tags Mais Utilizadas</div>
+                <div id="subview-stats-top-tags" class="stats-tags-container"></div>
+              </div>
+
+              <!-- Distribuição por Pasta -->
+              <div class="subview-section-card">
+                <div class="subview-section-title">Distribuição por Pasta</div>
+                <div id="subview-stats-folders-summary" class="stats-folders-list"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barra de Status Inferior (Estilo VS Code / Figma / Eagle) -->
+        <footer class="app-statusbar">
+          <div class="statusbar-left">
+            <span class="status-indicator-dot online"></span>
+            <span id="statusbar-project-label">Nenhum Projeto</span>
+            <span class="statusbar-separator">•</span>
+            <span id="statusbar-sync-label">Pronto</span>
+          </div>
+          <div class="statusbar-center">
+            <span id="statusbar-items-summary">0 vídeos exibidos</span>
+          </div>
+          <div class="statusbar-right">
+            <span id="statusbar-storage-summary">0 B em disco</span>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Barra Flutuante de Ações em Lote (Batch Selection Capsule) -->
+    <div id="batch-action-bar" class="batch-floating-capsule hidden">
+      <div class="batch-count-section">
+        <span class="batch-check-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </span>
+        <span id="batch-selected-count">0 vídeos selecionados</span>
+      </div>
+      <div class="batch-actions-section">
+        <button id="btn-batch-favorite" class="batch-pill-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <span>Favoritar</span>
+        </button>
+        <button id="btn-batch-add-tags" class="batch-pill-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>
+          <span>Adicionar Tag</span>
+        </button>
+        <button id="btn-batch-remove-tags" class="batch-pill-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <span>Remover Tag</span>
+        </button>
+        <button id="btn-batch-move" class="batch-pill-btn" title="Mover arquivos selecionados para outra pasta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          <span>Mover</span>
+        </button>
+        <button id="btn-batch-copy" class="batch-pill-btn" title="Copiar arquivos selecionados para outra pasta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copiar</span>
+        </button>
+        <button id="btn-batch-trash" class="batch-pill-btn danger" title="Mover selecionados para a Lixeira do Windows">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+          <span>Lixeira</span>
+        </button>
+        <button id="btn-batch-clear" class="batch-pill-btn subtle">
+          <span>Desmarcar Todos</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Menu de Contexto Customizado (Botão Direito) -->
+    <div id="context-menu" class="context-menu hidden">
+      <div class="context-menu-item" id="ctx-play">
+        <span class="ctx-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+        </span>
+        <span>Reproduzir vídeo</span>
+      </div>
+      <div class="context-menu-item" id="ctx-fav">
+        <span class="ctx-icon" id="ctx-fav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </span>
+        <span id="ctx-fav-label">Favoritar</span>
+      </div>
+      <div class="context-menu-item has-submenu" id="ctx-tags-item">
+        <span class="ctx-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>
+        </span>
+        <span class="ctx-item-text">Tags</span>
+        <svg class="ctx-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+
+        <!-- Submenu Flutuante de Tags -->
+        <div id="ctx-tags-submenu" class="context-submenu">
+          <div class="context-submenu-header">SELECIONAR TAGS</div>
+          <div id="ctx-tags-submenu-list" class="context-submenu-list"></div>
+          <div class="context-submenu-quick-create">
+            <input 
+              type="text" 
+              id="ctx-quick-tag-input" 
+              placeholder="+ Nova tag... (Enter)" 
+              autocomplete="off" 
+              spellcheck="false" 
+            />
+          </div>
+          <div class="context-menu-divider"></div>
+          <div class="context-submenu-action" id="ctx-tags-open-modal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 20h9"/>
+              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+            </svg>
+            <span>Gerenciador de Tags...</span>
+          </div>
+        </div>
+      </div>
+      <div class="context-menu-divider"></div>
+      <div class="context-menu-item" id="ctx-explorer">
+        <span class="ctx-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+        </span>
+        <span>Mostrar no Explorador</span>
+      </div>
+      <div class="context-menu-item" id="ctx-copy-path">
+        <span class="ctx-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+        </span>
+        <span>Copiar caminho</span>
+      </div>
+      <div class="context-menu-item" id="ctx-move-file">
+        <span class="ctx-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </span>
+        <span>Mover para Pasta...</span>
+      </div>
+      <div class="context-menu-item" id="ctx-copy-file">
+        <span class="ctx-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+        </span>
+        <span>Copiar para Pasta...</span>
+      </div>
+      <div class="context-menu-item" id="ctx-rename-video">
+        <span class="ctx-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+        </span>
+        <span>Renomear Arquivo...</span>
+        <span class="menubar-shortcut" style="margin-left: auto; font-size: 0.72rem; color: var(--text-muted);">F2</span>
+      </div>
+      <div class="context-menu-divider" id="ctx-remove-divider"></div>
+      <div class="context-menu-item danger" id="ctx-trash-file">
+        <span class="ctx-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        </span>
+        <span>Mover para a Lixeira</span>
+        <span class="menubar-shortcut" style="margin-left: auto; font-size: 0.72rem; color: #f87171;">Del</span>
+      </div>
+      <div class="context-menu-item danger" id="ctx-remove-file">
+        <span class="ctx-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </span>
+        <span>Desvincular do projeto</span>
+      </div>
+    </div>
+
+    <!-- Barra QuickInput Estilo VS Code para Criar Novo Projeto (No topo do app) -->
+    <div id="quickpick-bar" class="quickpick-overlay hidden">
+      <div class="quickpick-dialog">
+        <div class="quickpick-header-row">
+          <div class="quickpick-icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect width="18" height="18" x="3" y="3" rx="2" />
+              <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" />
+            </svg>
+          </div>
+          <input 
+            id="quickpick-input" 
+            class="quickpick-input" 
+            type="text" 
+            placeholder="Nome do novo projeto... (Pressione Enter para confirmar ou Esc para cancelar)" 
+            autocomplete="off" 
+            spellcheck="false" 
+          />
+          <button id="quickpick-submit-btn" class="quickpick-action-btn primary" title="Confirmar criação (Enter)">
+            <kbd>↵ Enter</kbd>
+          </button>
+          <button id="quickpick-close-btn" class="quickpick-action-btn subtle" title="Fechar (Esc)">
+            <kbd>Esc</kbd>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Ações em Lote para Tags -->
+    <div id="batch-tags-modal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-title-row">
+          <div class="modal-heading">
+            <div class="modal-icon-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>
+            </div>
+            <h3 id="batch-tags-modal-title">Adicionar Tag em Lote</h3>
+          </div>
+          <button id="btn-close-batch-tags-modal" class="modal-close-icon-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <p class="modal-desc" id="batch-tags-modal-desc">Selecione ou digite a tag que deseja aplicar a todos os vídeos selecionados.</p>
+
+        <div class="input-row-group" id="batch-new-tag-input-group">
+          <input id="batch-tag-input" class="app-text-input" type="text" placeholder="Nome da tag..." autocomplete="off" />
+        </div>
+
+        <div class="tags-selector-section">
+          <div class="section-hint">Tags existentes no projeto:</div>
+          <div id="batch-modal-tags-list" class="tags-selector-grid"></div>
+        </div>
+
+        <div class="modal-actions-footer">
+          <button id="btn-submit-batch-tags" class="app-pill-btn primary-glow">Aplicar em Lote</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Gerenciamento de Tags Individual -->
+    <div id="tags-modal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-title-row">
+          <div class="modal-heading">
+            <div class="modal-icon-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>
+            </div>
+            <h3>Gerenciar Tags do Vídeo</h3>
+          </div>
+          <button id="btn-close-tags-modal" class="modal-close-icon-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <div class="video-target-info">
+          <span class="label">Arquivo:</span>
+          <span id="modal-video-name" class="video-target-name"></span>
+        </div>
+
+        <div class="input-row-group flex-row">
+          <input id="new-tag-input" class="app-text-input" type="text" placeholder="Criar nova tag neste projeto..." autocomplete="off" />
+          <button id="btn-add-new-tag" class="app-pill-btn subtle">Adicionar Tag</button>
+        </div>
+
+        <div class="tags-selector-section">
+          <div class="section-hint">Selecione as tags para este vídeo:</div>
+          <div id="modal-tags-list" class="tags-selector-grid"></div>
+        </div>
+
+        <div class="modal-actions-footer">
+          <button id="btn-save-tags" class="app-pill-btn primary-glow">Salvar Tags</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Sorteio Aleatório Avançado (Shuffle) -->
+    <div id="random-modal" class="modal-overlay hidden">
+      <div class="modal-card random-dialog">
+        <div class="modal-title-row">
+          <div class="modal-heading">
+            <div class="modal-icon-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/><path d="M12 12h.01"/></svg>
+            </div>
+            <h3>Abrir Aleatório com Filtros</h3>
+          </div>
+          <button id="btn-close-random-modal" class="modal-close-icon-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <p class="modal-desc">Configure os critérios para o sorteio. O aplicativo filtrará sua biblioteca instantaneamente e abrirá o vídeo sorteado no reprodutor.</p>
+
+        <!-- Filtro por Nome / Palavras no Título -->
+        <div class="random-option-group">
+          <label class="option-label">Palavras no Nome do Vídeo (separadas por espaço):</label>
+          <div class="random-search-input-wrap">
+            <input 
+              type="text" 
+              id="random-title-input" 
+              class="app-input-field" 
+              style="width: 100%; box-sizing: border-box; background: var(--bg-surface-elevated); color: var(--text-primary); border: 1px solid var(--border-medium); border-radius: 6px; padding: 0.55rem 0.75rem; font-size: 0.88rem;"
+              placeholder="Ex: gameplay corrida 1080p (busca vídeos contendo essas palavras)..."
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </div>
+        </div>
+
+        <!-- Filtro de Favoritos -->
+        <div class="random-option-group">
+          <label class="option-label">Status de Favorito:</label>
+          <div class="pill-segmented-control" id="random-fav-control">
+            <button class="segment-btn active" data-val="any">Qualquer Vídeo</button>
+            <button class="segment-btn" data-val="only_fav">Apenas Favoritos ⭐</button>
+            <button class="segment-btn" data-val="not_fav">Não Favoritados</button>
+          </div>
+        </div>
+
+        <!-- Tags Obrigatórias -->
+        <div class="random-option-group">
+          <label class="option-label">O vídeo DEVE conter estas tags (Incluir):</label>
+          <div id="random-include-tags" class="tags-selector-grid"></div>
+        </div>
+
+        <!-- Tags Bloqueadas -->
+        <div class="random-option-group">
+          <label class="option-label">O vídeo NÃO PODE conter estas tags (Excluir):</label>
+          <div id="random-exclude-tags" class="tags-selector-grid"></div>
+        </div>
+
+        <div class="random-modal-footer">
+          <div class="matching-count-badge">
+            <span id="random-matching-count">0</span> vídeos elegíveis para o sorteio
+          </div>
+          <button id="btn-execute-random-play" class="app-pill-btn primary-glow large">
+            <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="6 4 20 12 6 20 6 4" fill="currentColor"/>
+            </svg>
+            <span>Sortear e Reproduzir</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Customizado de Diálogo (Confirm / Alert no estilo do app) -->
+    <div id="app-dialog-modal" class="modal-overlay hidden" style="z-index: 10000;">
+      <div class="modal-card dialog-box" style="max-width: 440px; animation: scaleIn 0.15s ease-out;">
+        <div class="dialog-icon-row">
+          <div id="dialog-icon-badge" class="dialog-icon-badge danger">
+            <svg id="dialog-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 9v4"/>
+              <path d="M12 17h.01"/>
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 id="dialog-title" class="dialog-title">Confirmar Ação</h3>
+            <p id="dialog-message" class="dialog-message">Mensagem de confirmação...</p>
+          </div>
+        </div>
+        <div class="modal-actions-footer right" style="margin-top: 1.25rem;">
+          <button id="dialog-btn-cancel" class="app-pill-btn subtle">Cancelar</button>
+          <button id="dialog-btn-confirm" class="app-pill-btn danger">Confirmar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Renomear Vídeo -->
+    <div id="rename-video-modal" class="modal-overlay hidden" style="z-index: 10000;">
+      <div class="modal-card dialog-box" style="max-width: 480px; animation: scaleIn 0.15s ease-out;">
+        <div class="dialog-icon-row">
+          <div class="dialog-icon-badge info">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+              <path d="m15 5 4 4"/>
+            </svg>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <h3 class="dialog-title">Renomear Vídeo</h3>
+            <p class="dialog-message" style="margin-bottom: 0.75rem;">Digite o novo nome para o arquivo de vídeo no disco:</p>
+            <input 
+              type="text" 
+              id="rename-video-input" 
+              class="app-input-field" 
+              style="width: 100%; box-sizing: border-box; background: var(--bg-surface-elevated); color: var(--text-primary); border: 1px solid var(--border-medium); border-radius: 6px; padding: 0.55rem 0.75rem; font-size: 0.88rem;"
+              placeholder="Novo nome do arquivo..."
+            />
+          </div>
+        </div>
+        <div class="modal-actions-footer right" style="margin-top: 1.25rem;">
+          <button id="rename-video-cancel-btn" class="app-pill-btn subtle">Cancelar</button>
+          <button id="rename-video-confirm-btn" class="app-pill-btn primary-glow">Renomear</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Desbloqueio de Senha do Projeto -->
+    <div id="project-password-modal" class="modal-overlay hidden" style="z-index: 10000;">
+      <div class="modal-card dialog-box" style="max-width: 440px; animation: scaleIn 0.15s ease-out;">
+        <div class="dialog-icon-row">
+          <div class="dialog-icon-badge info" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <h3 id="project-password-title" class="dialog-title">Projeto Protegido</h3>
+            <p class="dialog-message" style="margin-bottom: 0.75rem;">Este projeto requer senha para ser aberto:</p>
+            <input 
+              type="password" 
+              id="project-password-input" 
+              class="app-input-field" 
+              style="width: 100%; box-sizing: border-box; background: var(--bg-surface-elevated); color: var(--text-primary); border: 1px solid var(--border-medium); border-radius: 6px; padding: 0.55rem 0.75rem; font-size: 0.88rem;"
+              placeholder="Digite a senha..."
+            />
+            <div id="project-password-error" class="hidden" style="color: #ef4444; font-size: 0.78rem; margin-top: 0.4rem;">Senha incorreta. Tente novamente.</div>
+          </div>
+        </div>
+        <div class="modal-actions-footer right" style="margin-top: 1.25rem;">
+          <button id="project-password-cancel-btn" class="app-pill-btn subtle">Cancelar</button>
+          <button id="project-password-confirm-btn" class="app-pill-btn primary-glow">Desbloquear</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Gerenciar / Definir Senha do Projeto -->
+    <div id="project-manage-password-modal" class="modal-overlay hidden" style="z-index: 10000;">
+      <div class="modal-card dialog-box" style="max-width: 460px; animation: scaleIn 0.15s ease-out;">
+        <div class="dialog-icon-row">
+          <div class="dialog-icon-badge info">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <h3 id="manage-password-title" class="dialog-title">Segurança do Projeto</h3>
+            <p class="dialog-message" style="margin-bottom: 0.75rem;">Defina uma senha opcional para proteger o acesso a este projeto:</p>
+            <div id="manage-password-current-group" class="hidden" style="margin-bottom: 0.6rem;">
+              <label style="display: block; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.25rem;">Senha Atual:</label>
+              <input 
+                type="password" 
+                id="manage-password-current-input" 
+                class="app-input-field" 
+                style="width: 100%; box-sizing: border-box; background: var(--bg-surface-elevated); color: var(--text-primary); border: 1px solid var(--border-medium); border-radius: 6px; padding: 0.55rem 0.75rem; font-size: 0.88rem;"
+                placeholder="Digite a senha atual..."
+              />
+            </div>
+            <div>
+              <label id="manage-password-new-label" style="display: block; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.25rem;">Nova Senha (deixe vazio para remover a senha):</label>
+              <input 
+                type="password" 
+                id="manage-password-new-input" 
+                class="app-input-field" 
+                style="width: 100%; box-sizing: border-box; background: var(--bg-surface-elevated); color: var(--text-primary); border: 1px solid var(--border-medium); border-radius: 6px; padding: 0.55rem 0.75rem; font-size: 0.88rem;"
+                placeholder="Digite a nova senha..."
+              />
+            </div>
+            <div id="manage-password-error" class="hidden" style="color: #ef4444; font-size: 0.78rem; margin-top: 0.4rem;"></div>
+          </div>
+        </div>
+        <div class="modal-actions-footer right" style="margin-top: 1.25rem;">
+          <button id="manage-password-cancel-btn" class="app-pill-btn subtle">Cancelar</button>
+          <button id="manage-password-save-btn" class="app-pill-btn primary-glow">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Localizador de Vídeos Duplicados -->
+    <div id="duplicates-modal" class="modal-overlay hidden" style="z-index: 10000;">
+      <div class="modal-card dialog-box" style="max-width: 840px; width: 94%; max-height: 88vh; display: flex; flex-direction: column; animation: scaleIn 0.15s ease-out;">
+        <div class="modal-header-row" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-hairline); padding-bottom: 0.75rem; margin-bottom: 1rem;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="dialog-icon-badge info" style="background: rgba(99, 102, 241, 0.15); color: var(--accent-primary); width: 36px; height: 36px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+              </svg>
+            </div>
+            <div>
+              <h3 class="dialog-title" style="margin: 0; font-size: 1.05rem;">Localizador de Vídeos Duplicados</h3>
+              <p style="margin: 0; font-size: 0.78rem; color: var(--text-muted);">Compare arquivos repetidos e libere espaço no disco</p>
+            </div>
+          </div>
+          <button id="duplicates-modal-close" class="app-pill-btn subtle icon-only" title="Fechar (Esc)">✕</button>
+        </div>
+
+        <!-- Barra de Critérios e Escaneamento -->
+        <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.03); padding: 0.65rem 0.85rem; border-radius: 8px; border: 1px solid var(--border-subtle); flex-wrap: wrap;">
+          <span style="font-size: 0.78rem; color: var(--text-secondary); font-weight: 500;">Critério:</span>
+          <select id="duplicates-criteria-select" class="app-select" style="font-size: 0.78rem; padding: 0.35rem 0.6rem;">
+            <option value="content" selected>Mesmo Conteúdo (Hash Parcial Rápido)</option>
+            <option value="size_duration">Mesmo Tamanho e Duração</option>
+            <option value="size_name">Mesmo Nome e Tamanho</option>
+          </select>
+          <button id="btn-scan-duplicates" class="app-pill-btn primary-glow" style="font-size: 0.78rem; padding: 0.35rem 0.85rem; margin-left: auto;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 13px; height: 13px;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <span>Escanear Projeto</span>
+          </button>
+        </div>
+
+        <!-- Banner de Resumo -->
+        <div id="duplicates-summary-banner" class="hidden" style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; justify-content: space-between; background: rgba(99, 102, 241, 0.08); padding: 0.5rem 0.85rem; border-radius: 6px; border: 1px solid rgba(99, 102, 241, 0.2);">
+          <span id="duplicates-summary-text">0 duplicados encontrados.</span>
+        </div>
+
+        <!-- Container de Listagem com Scroll -->
+        <div id="duplicates-results-container" style="flex: 1; overflow-y: auto; margin-top: 0.85rem; display: flex; flex-direction: column; gap: 0.85rem; padding-right: 4px; min-height: 220px;">
+          <div id="duplicates-empty-hint" style="text-align: center; color: var(--text-muted); padding: 3rem 1rem; font-size: 0.85rem;">
+            Selecione o critério acima e clique em <strong>Escanear Projeto</strong> para analisar os vídeos.
+          </div>
+        </div>
+
+        <div class="modal-actions-footer right" style="margin-top: 1rem; border-top: 1px solid var(--border-hairline); padding-top: 0.75rem;">
+          <button id="duplicates-modal-btn-done" class="app-pill-btn primary-glow">Concluído</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Mover / Copiar Arquivos entre Pastas -->
+    <div id="move-copy-modal" class="modal-overlay hidden" style="z-index: 10000;">
+      <div class="modal-card dialog-box" style="max-width: 520px; animation: scaleIn 0.15s ease-out;">
+        <div class="dialog-icon-row">
+          <div id="move-copy-icon-badge" class="dialog-icon-badge info" style="background: rgba(99, 102, 241, 0.15); color: var(--accent-primary);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14"/>
+              <path d="m12 5 7 7-7 7"/>
+            </svg>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <h3 id="move-copy-title" class="dialog-title">Mover Arquivo(s)</h3>
+            <p id="move-copy-desc" class="dialog-message" style="margin-bottom: 0.75rem;">Selecione a pasta de destino para os vídeos selecionados:</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 0.75rem;">
+              <label style="font-size: 0.78rem; color: var(--text-muted); font-weight: 500;">Pastas Vinculadas ao Projeto:</label>
+              <div id="move-copy-folders-list" style="max-height: 160px; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: 6px; background: rgba(0,0,0,0.2); padding: 4px; display: flex; flex-direction: column; gap: 3px;">
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button id="move-copy-btn-browse" class="app-pill-btn subtle" style="font-size: 0.78rem; width: 100%; justify-content: center; border: 1px dashed var(--border-medium);">
+                📁 Escolher Outra Pasta no Disco (Browse)...
+              </button>
+            </div>
+
+            <div id="move-copy-selected-dest" style="margin-top: 0.6rem; font-size: 0.78rem; color: var(--text-secondary); word-break: break-all;">
+              Destino selecionado: <strong id="move-copy-dest-label" style="color: #fff;">Nenhuma selecionada</strong>
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions-footer right" style="margin-top: 1.25rem;">
+          <button id="move-copy-btn-cancel" class="app-pill-btn subtle">Cancelar</button>
+          <button id="move-copy-btn-confirm" class="app-pill-btn primary-glow" disabled>Confirmar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overlay Visual de Drag & Drop -->
+    <div id="drag-drop-overlay" class="drag-drop-overlay hidden">
+      <div class="drag-drop-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="17 8 12 3 7 8" />
+          <line x1="12" y1="3" x2="12" y2="15" />
+        </svg>
+      </div>
+      <div class="drag-drop-title">Solte seus vídeos ou pastas aqui</div>
+      <div class="drag-drop-desc">O projeto indexará os arquivos automaticamente</div>
+    </div>
+  </body>
+</html>
