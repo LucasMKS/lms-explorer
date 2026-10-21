@@ -3518,10 +3518,10 @@ function renderTagFilters() {
     const isExcluded = excludedFilterTags.has(tag);
     chip.className = `sidebar-tag-chip ${isIncluded ? "active" : ""} ${isExcluded ? "excluded" : ""}`;
     chip.title = isExcluded
-      ? `Tag EXCLUÍDA: vídeos com #${tag} estão ocultos. Clique para limpar.`
+      ? `Tag NEGADA: vídeos com #${tag} estão ocultos. Botão direito para desmarcar.`
       : isIncluded
-      ? `Tag INCLUÍDA: clique para excluir (−) esta tag do filtro.`
-      : `Clique para filtrar por #${tag}. Clique novamente para excluir (−). Botão direito para excluir direto.`;
+      ? `Tag ATIVA: vídeos com #${tag} são exibidos. Botão esquerdo para desmarcar, botão direito para torná-la negativa.`
+      : `Botão esquerdo para filtrar por #${tag}. Botão direito para marcar como negativa (ocultar vídeos com esta tag).`;
 
     const colorClass = getTagColorClass(tag);
     const count = allVideos.filter((v) => v.tags.includes(tag)).length;
@@ -3572,12 +3572,11 @@ function renderTagFilters() {
     chip.onclick = () => {
       filterOnlyFavorites = false;
       filterOnlyUntagged = false;
+      // Clique esquerdo: alterna apenas entre ativa (incluída) e normal
       if (selectedFilterTags.has(tag)) {
         selectedFilterTags.delete(tag);
-        excludedFilterTags.add(tag);
-      } else if (excludedFilterTags.has(tag)) {
-        excludedFilterTags.delete(tag);
       } else {
+        excludedFilterTags.delete(tag);
         selectedFilterTags.add(tag);
       }
       renderTagFilters();
@@ -3586,8 +3585,10 @@ function renderTagFilters() {
 
     chip.oncontextmenu = (e) => {
       e.preventDefault();
+      e.stopPropagation();
       filterOnlyFavorites = false;
       filterOnlyUntagged = false;
+      // Clique direito: alterna diretamente entre negativa (vermelha) e normal
       if (excludedFilterTags.has(tag)) {
         excludedFilterTags.delete(tag);
       } else {
@@ -4880,21 +4881,24 @@ window.addEventListener("DOMContentLoaded", () => {
   // Drag & Drop Nativo (Tauri v2) de Arquivos e Pastas
   try {
     const currentWin = getCurrentWebviewWindow();
-    let dragCounter = 0;
+    let dragOverWatchdog: number | null = null;
 
     currentWin.onDragDropEvent((event) => {
       const p = event.payload;
-      if (p.type === "enter" || p.type === "over") {
-        dragCounter++;
+      if (p.type === "enter") {
         dragDropOverlay?.classList.remove("hidden");
-      } else if (p.type === "leave") {
-        dragCounter--;
-        if (dragCounter <= 0) {
-          dragCounter = 0;
+      } else if (p.type === "over") {
+        dragDropOverlay?.classList.remove("hidden");
+        // Watchdog de segurança: se o usuário cancelar o arraste fora da tela sem evento leave
+        if (dragOverWatchdog) clearTimeout(dragOverWatchdog);
+        dragOverWatchdog = window.setTimeout(() => {
           dragDropOverlay?.classList.add("hidden");
-        }
+        }, 1200);
+      } else if (p.type === "leave") {
+        if (dragOverWatchdog) clearTimeout(dragOverWatchdog);
+        dragDropOverlay?.classList.add("hidden");
       } else if (p.type === "drop") {
-        dragCounter = 0;
+        if (dragOverWatchdog) clearTimeout(dragOverWatchdog);
         dragDropOverlay?.classList.add("hidden");
         if (p.paths && p.paths.length > 0) {
           handleDroppedPaths(p.paths);
@@ -4904,6 +4908,27 @@ window.addEventListener("DOMContentLoaded", () => {
   } catch (err) {
     console.warn("Native drag & drop listener not available:", err);
   }
+
+  // Medidas de segurança adicionais para o overlay nunca ficar travado na tela
+  window.addEventListener("dragleave", (e) => {
+    if (!e.relatedTarget || e.clientX <= 0 || e.clientY <= 0 || e.clientX >= window.innerWidth || e.clientY >= window.innerHeight) {
+      dragDropOverlay?.classList.add("hidden");
+    }
+  });
+
+  window.addEventListener("dragend", () => {
+    dragDropOverlay?.classList.add("hidden");
+  });
+
+  window.addEventListener("blur", () => {
+    dragDropOverlay?.classList.add("hidden");
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      dragDropOverlay?.classList.add("hidden");
+    }
+  });
 
   // Prevenir comportamento padrão do navegador
   window.addEventListener("dragover", (e) => e.preventDefault());
@@ -4927,7 +4952,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
 
     // Se clicou em tag chip no menu lateral (já tem seu handler próprio)
-    if (target.closest(".tag-chip")) {
+    if (target.closest(".sidebar-tag-chip") || target.closest(".tag-chip")) {
       return;
     }
 

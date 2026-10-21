@@ -374,8 +374,10 @@ button, input, select {
 
 .sidebar-nav-section.flex-grow {
   flex: 1;
-  min-height: 0;
-  overflow-y: auto;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .sidebar-section-header {
@@ -487,13 +489,23 @@ button, input, select {
 }
 
 /* Pastas e Tags na Sidebar */
-.sidebar-folders-container,
-.sidebar-tags-container {
+.sidebar-folders-container {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
   max-height: 160px;
   overflow-y: auto;
+}
+
+.sidebar-tags-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1;
+  min-height: 80px;
+  max-height: none;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .sidebar-folder-row {
