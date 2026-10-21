@@ -1686,6 +1686,23 @@ body.has-batch-selection .card-select-checkbox {
   justify-content: space-between;
 }
 
+/* Ponte invisível no item pai para garantir continuidade no movimento do mouse */
+.context-menu-item.has-submenu::after {
+  content: "";
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  right: -12px;
+  width: 16px;
+  background: transparent;
+  pointer-events: auto;
+}
+
+.context-menu.submenu-open-left .context-menu-item.has-submenu::after {
+  right: auto;
+  left: -12px;
+}
+
 .context-menu-item.has-submenu .ctx-item-text {
   flex: 1;
 }
@@ -1698,15 +1715,15 @@ body.has-batch-selection .card-select-checkbox {
   transition: transform 0.1s ease;
 }
 
-.context-menu-item.has-submenu:hover .ctx-chevron-right {
+.context-menu-item.has-submenu:hover .ctx-chevron-right,
+.context-menu-item.has-submenu.submenu-open .ctx-chevron-right {
   color: #fff;
 }
 
 .context-submenu {
   position: absolute;
   top: -4px;
-  left: 100%;
-  margin-left: 6px;
+  left: calc(100% + 2px);
   background: #171a25;
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-md);
@@ -1720,8 +1737,21 @@ body.has-batch-selection .card-select-checkbox {
   cursor: default;
 }
 
-/* Exibe o submenu no hover do item pai */
+/* Ponte invisível no submenu cobrindo a transição de mouse */
+.context-submenu::before {
+  content: "";
+  position: absolute;
+  top: -14px;
+  bottom: -14px;
+  left: -24px;
+  width: 30px;
+  background: transparent;
+  pointer-events: auto;
+}
+
+/* Exibe o submenu no hover do item pai ou enquanto mantido aberto via JS */
 .context-menu-item.has-submenu:hover .context-submenu,
+.context-menu-item.has-submenu.submenu-open .context-submenu,
 .context-submenu:hover {
   display: flex;
 }
@@ -1729,9 +1759,15 @@ body.has-batch-selection .card-select-checkbox {
 /* Quando estiver próximo à borda direita da tela, abre à esquerda */
 .context-menu.submenu-open-left .context-submenu {
   left: auto;
-  right: 100%;
+  right: calc(100% + 2px);
   margin-left: 0;
-  margin-right: 6px;
+  margin-right: 0;
+}
+
+.context-menu.submenu-open-left .context-submenu::before {
+  left: auto;
+  right: -24px;
+  width: 30px;
 }
 
 .context-submenu-header {
