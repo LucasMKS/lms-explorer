@@ -1628,11 +1628,28 @@ function formatDate(timestampSec: number): string {
   return d.toLocaleDateString("pt-BR");
 }
 
+// Normaliza strings removendo acentos/diacríticos e convertendo para minúsculas
+function normalizeSearchText(str: string): string {
+  if (!str) return "";
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
 function getSortedAndFilteredVideos(): VideoItem[] {
+  const normalizedQuery = normalizeSearchText(searchQuery);
+  const searchTerms = normalizedQuery ? normalizedQuery.split(/\s+/).filter(Boolean) : [];
+
   let list = allVideos.filter((video) => {
-    if (searchQuery.trim() !== "") {
-      const q = searchQuery.toLowerCase();
-      if (!video.name.toLowerCase().includes(q)) return false;
+    if (searchTerms.length > 0) {
+      const normalizedName = normalizeSearchText(video.name);
+      for (const term of searchTerms) {
+        const matchesName = normalizedName.includes(term);
+        const matchesTag = video.tags.some((t) => normalizeSearchText(t).includes(term));
+        if (!matchesName && !matchesTag) return false;
+      }
     }
 
     if (filterOnlyFavorites && !video.is_favorite) {
@@ -3447,8 +3464,8 @@ function getMatchingRandomVideos(): VideoItem[] {
     if (randomFavMode === "not_fav" && video.is_favorite) return false;
 
     if (randomTitleFilter.trim()) {
-      const words = randomTitleFilter.toLowerCase().split(/\s+/).filter(Boolean);
-      const videoName = video.name.toLowerCase();
+      const words = normalizeSearchText(randomTitleFilter).split(/\s+/).filter(Boolean);
+      const videoName = normalizeSearchText(video.name);
       for (const word of words) {
         if (!videoName.includes(word)) return false;
       }
