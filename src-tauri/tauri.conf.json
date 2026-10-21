@@ -31,12 +31,26 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "publisher": "Lucas Marques",
+    "copyright": "Copyright (c) 2026 Lucas Marques da Silva",
+    "shortDescription": "Gerenciador e explorador de vídeos de alta performance",
+    "longDescription": "LMS Video Explorer é um aplicativo desktop moderno para catalogação e gerenciamento de acervos de vídeo.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "installerIcon": "icons/icon.ico",
+        "headerImage": "icons/nsis-header.bmp",
+        "sidebarImage": "icons/nsis-sidebar.bmp",
+        "languages": ["Portuguese", "English"],
+        "displayLanguageSelector": false
+      }
+    }
   }
 }
