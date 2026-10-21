@@ -1744,6 +1744,35 @@ body.has-batch-selection .card-select-checkbox {
   margin-bottom: 0.3rem;
 }
 
+.ctx-check-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--accent-light, #818cf8);
+  flex-shrink: 0;
+  margin-right: 0.25rem;
+}
+
+.vctx-sort-dir-arrow {
+  margin-left: auto;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--accent-light, #818cf8);
+  background: rgba(99, 102, 241, 0.12);
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-xs);
+  letter-spacing: 0.02em;
+}
+
+.context-menu-item:hover .vctx-sort-dir-arrow {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
 .context-submenu-list {
   display: flex;
   flex-direction: column;

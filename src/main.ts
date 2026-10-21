@@ -331,9 +331,9 @@ const groupLabel = document.getElementById("group-label") as HTMLElement | null;
 const groupDropdownMenu = document.getElementById("group-dropdown-menu") as HTMLDivElement | null;
 const searchInput = document.getElementById("search-input") as HTMLInputElement;
 const btnClearSearch = document.getElementById("btn-clear-search") as HTMLButtonElement;
-const btnSortDropdown = document.getElementById("btn-sort-dropdown") as HTMLButtonElement;
-const sortLabel = document.getElementById("sort-label") as HTMLElement;
-const sortDropdownMenu = document.getElementById("sort-dropdown-menu") as HTMLDivElement;
+const btnSortDropdown = document.getElementById("btn-sort-dropdown") as HTMLButtonElement | null;
+const sortLabel = document.getElementById("sort-label") as HTMLElement | null;
+const sortDropdownMenu = document.getElementById("sort-dropdown-menu") as HTMLDivElement | null;
 const filterFavBtn = document.getElementById("filter-fav-btn") as HTMLButtonElement;
 const tagFilterList = document.getElementById("tag-filter-list") as HTMLDivElement;
 const btnSidebarAddTag = document.getElementById("btn-sidebar-add-tag") as HTMLButtonElement | null;
@@ -373,8 +373,9 @@ const btnPauseThumbs = document.getElementById("btn-pause-thumbs") as HTMLButton
 const btnResumeThumbs = document.getElementById("btn-resume-thumbs") as HTMLButtonElement;
 const btnCancelThumbs = document.getElementById("btn-cancel-thumbs") as HTMLButtonElement;
 
-// Menu de Contexto
+// Menus de Contexto
 const contextMenu = document.getElementById("context-menu") as HTMLDivElement;
+const viewContextMenu = document.getElementById("view-context-menu") as HTMLDivElement | null;
 const ctxPlay = document.getElementById("ctx-play") as HTMLDivElement;
 const ctxFav = document.getElementById("ctx-fav") as HTMLDivElement;
 const ctxFavIcon = document.getElementById("ctx-fav-icon") as HTMLElement;
@@ -1516,13 +1517,14 @@ function setSortMode(mode: SortMode, label?: string, persist = true) {
       }).catch((err) => console.error("Erro ao salvar ordenação no projeto:", err));
     }
   }
-  sortLabel.textContent = displayLabel;
-  sortDropdownMenu.classList.add("hidden");
+  if (sortLabel) sortLabel.textContent = displayLabel;
+  sortDropdownMenu?.classList.add("hidden");
 
   document.querySelectorAll(".sort-option").forEach((opt) => {
     opt.classList.toggle("active", opt.getAttribute("data-sort") === mode);
   });
 
+  updateViewContextMenuState();
   renderGrid();
 }
 
@@ -1544,9 +1546,17 @@ function setGridSize(size: "small" | "medium" | "large", persist = true) {
   videoGrid.classList.remove("size-small", "size-medium", "size-large");
   videoGrid.classList.add(`size-${size}`);
 
+  // Atualizar imediatamente qualquer subgrade em modo de agrupamento
+  videoGrid.querySelectorAll(".video-gallery-grid").forEach((grid) => {
+    grid.classList.remove("size-small", "size-medium", "size-large");
+    grid.classList.add(`size-${size}`);
+  });
+
   zoomBtns.forEach((btn) => {
     btn.classList.toggle("active", btn.getAttribute("data-size") === size);
   });
+
+  updateViewContextMenuState();
 }
 
 function setViewMode(mode: ViewMode, persist = true) {
@@ -1568,6 +1578,7 @@ function setViewMode(mode: ViewMode, persist = true) {
   btnViewGrid?.classList.toggle("active", mode === "grid");
   btnViewTable?.classList.toggle("active", mode === "table");
 
+  updateViewContextMenuState();
   renderGrid();
 }
 
@@ -1595,6 +1606,7 @@ function setGroupBy(group: GroupByMode, label?: string, persist = true) {
     opt.classList.toggle("active", opt.getAttribute("data-group") === group);
   });
 
+  updateViewContextMenuState();
   renderGrid();
 }
 
@@ -2879,6 +2891,7 @@ function renderDuplicateResults(groups: DuplicateGroup[]) {
 // MENU DE CONTEXTO NOTION (BOTÃO DIREITO)
 // ============================================================
 function openContextMenu(e: MouseEvent, video: VideoItem) {
+  closeViewContextMenu();
   contextTargetVideo = video;
 
   ctxFavLabel.textContent = video.is_favorite ? "Remover dos favoritos" : "Favoritar";
@@ -3007,6 +3020,216 @@ async function createAndApplyTagDirectly(video: VideoItem, rawTag: string) {
 function closeContextMenu() {
   contextMenu.classList.add("hidden");
   contextTargetVideo = null;
+}
+
+// ============================================================
+// MENU DE CONTEXTO DA ÁREA DE TRABALHO / VISUALIZAÇÃO
+// ============================================================
+function toggleSortByField(field: string) {
+  switch (field) {
+    case "name":
+      setSortMode(currentSortMode === "name-asc" ? "name-desc" : "name-asc");
+      break;
+    case "date":
+      setSortMode(currentSortMode === "date-desc" ? "date-asc" : "date-desc");
+      break;
+    case "size":
+      setSortMode(currentSortMode === "size-desc" ? "size-asc" : "size-desc");
+      break;
+    case "duration":
+      setSortMode(currentSortMode === "duration-desc" ? "duration-asc" : "duration-desc");
+      break;
+    case "plays":
+      setSortMode(currentSortMode === "plays-desc" ? "plays-asc" : "plays-desc");
+      break;
+    case "recent-played":
+      setSortMode("recent-played");
+      break;
+  }
+}
+
+function updateViewContextMenuState() {
+  if (!viewContextMenu) return;
+
+  // 1. Modo de Exibição
+  const checkModeGrid = document.getElementById("vctx-check-mode-grid");
+  const checkModeTable = document.getElementById("vctx-check-mode-table");
+  if (checkModeGrid) checkModeGrid.textContent = currentViewMode === "grid" ? "✓" : "";
+  if (checkModeTable) checkModeTable.textContent = currentViewMode === "table" ? "✓" : "";
+
+  // 2. Tamanho dos Cards
+  const checkSmall = document.getElementById("vctx-check-size-small");
+  const checkMedium = document.getElementById("vctx-check-size-medium");
+  const checkLarge = document.getElementById("vctx-check-size-large");
+  if (checkSmall) checkSmall.textContent = currentGridSize === "small" ? "✓" : "";
+  if (checkMedium) checkMedium.textContent = currentGridSize === "medium" ? "✓" : "";
+  if (checkLarge) checkLarge.textContent = currentGridSize === "large" ? "✓" : "";
+
+  // 3. Agrupamento
+  const groups: GroupByMode[] = ["none", "folder", "tag", "date", "format", "status"];
+  for (const g of groups) {
+    const el = document.getElementById(`vctx-check-group-${g}`);
+    if (el) el.textContent = currentGroupBy === g ? "✓" : "";
+  }
+
+  // 4. Ordenação
+  const sortFields = ["name", "date", "size", "duration", "plays", "recent-played"];
+  for (const f of sortFields) {
+    const checkEl = document.getElementById(`vctx-check-sort-${f}`);
+    const arrowEl = document.getElementById(`vctx-arrow-sort-${f}`);
+    if (checkEl) checkEl.textContent = "";
+    if (arrowEl) arrowEl.textContent = "";
+  }
+
+  if (currentSortMode === "name-asc") {
+    const check = document.getElementById("vctx-check-sort-name");
+    const arrow = document.getElementById("vctx-arrow-sort-name");
+    if (check) check.textContent = "✓";
+    if (arrow) arrow.textContent = "A → Z";
+  } else if (currentSortMode === "name-desc") {
+    const check = document.getElementById("vctx-check-sort-name");
+    const arrow = document.getElementById("vctx-arrow-sort-name");
+    if (check) check.textContent = "✓";
+    if (arrow) arrow.textContent = "Z → A";
+  } else if (currentSortMode === "date-desc") {
+    const check = document.getElementById("vctx-check-sort-date");
+    const arrow = document.getElementById("vctx-arrow-sort-date");
+    if (check) check.textContent = "✓";
+    if (arrow) arrow.textContent = "Mais Recentes";
+  } else if (currentSortMode === "date-asc") {
+    const check = document.getElementById("vctx-check-sort-date");
+    const arrow = document.getElementById("vctx-arrow-sort-date");
+    if (check) check.textContent = "✓";
+    if (arrow) arrow.textContent = "Mais Antigos";
+  } else if (currentSortMode === "size-desc") {
+    const check = document.getElementById("vctx-check-sort-size");
+    const arrow = document.getElementById("vctx-arrow-sort-size");
+    if (check) check.textContent = "✓";
+    if (arrow) arrow.textContent = "Maior";
+  } else if (currentSortMode === "size-asc") {
+    const check = document.getElementById("vctx-check-sort-size");
+    const arrow = document.getElementById("vctx-arrow-sort-size");
+    if (check) check.textContent = "✓";
+    if (arrow) arrow.textContent = "Menor";
+  } else if (currentSortMode === "duration-desc") {
+    const check = document.getElementById("vctx-check-sort-duration");
+    const arrow = document.getElementById("vctx-arrow-sort-duration");
+    if (check) check.textContent = "✓";
+    if (arrow) arrow.textContent = "Mais Longos";
+  } else if (currentSortMode === "duration-asc") {
+    const check = document.getElementById("vctx-check-sort-duration");
+    const arrow = document.getElementById("vctx-arrow-sort-duration");
+    if (check) check.textContent = "✓";
+    if (arrow) arrow.textContent = "Mais Curtos";
+  } else if (currentSortMode === "plays-desc") {
+    const check = document.getElementById("vctx-check-sort-plays");
+    const arrow = document.getElementById("vctx-arrow-sort-plays");
+    if (check) check.textContent = "✓";
+    if (arrow) arrow.textContent = "Mais Assistidos";
+  } else if (currentSortMode === "plays-asc") {
+    const check = document.getElementById("vctx-check-sort-plays");
+    const arrow = document.getElementById("vctx-arrow-sort-plays");
+    if (check) check.textContent = "✓";
+    if (arrow) arrow.textContent = "Nunca Assistidos";
+  } else if (currentSortMode === "recent-played") {
+    const check = document.getElementById("vctx-check-sort-recent-played");
+    const arrow = document.getElementById("vctx-arrow-sort-recent-played");
+    if (check) check.textContent = "✓";
+    if (arrow) arrow.textContent = "Recentes";
+  }
+}
+
+function openViewContextMenu(e: MouseEvent) {
+  if (!viewContextMenu) return;
+  closeContextMenu();
+
+  updateViewContextMenuState();
+  viewContextMenu.classList.remove("hidden");
+
+  const rect = viewContextMenu.getBoundingClientRect();
+  const menuWidth = rect.width > 0 ? rect.width : (viewContextMenu.offsetWidth || 210);
+  const menuHeight = rect.height > 0 ? rect.height : (viewContextMenu.offsetHeight || 220);
+  const submenuWidth = 250;
+  const winWidth = window.innerWidth;
+  const winHeight = window.innerHeight;
+
+  let x = e.clientX;
+  let y = e.clientY;
+
+  // Se o submenu estourar a tela à direita, abre para a esquerda
+  if (x + menuWidth + submenuWidth > winWidth) {
+    viewContextMenu.classList.add("submenu-open-left");
+  } else {
+    viewContextMenu.classList.remove("submenu-open-left");
+  }
+
+  if (x + menuWidth > winWidth) x = Math.max(10, winWidth - menuWidth - 10);
+  if (y + menuHeight > winHeight) y = Math.max(10, winHeight - menuHeight - 10);
+
+  viewContextMenu.style.left = `${Math.round(x)}px`;
+  viewContextMenu.style.top = `${Math.round(y)}px`;
+}
+
+function closeViewContextMenu() {
+  if (viewContextMenu) viewContextMenu.classList.add("hidden");
+}
+
+function initViewContextMenu() {
+  if (!viewContextMenu) return;
+
+  // 1. Modo de exibição
+  document.getElementById("vctx-mode-grid")?.addEventListener("click", () => {
+    setViewMode("grid");
+    closeViewContextMenu();
+  });
+  document.getElementById("vctx-mode-table")?.addEventListener("click", () => {
+    setViewMode("table");
+    closeViewContextMenu();
+  });
+
+  // 2. Tamanho dos cards
+  viewContextMenu.querySelectorAll("[data-vctx-size]").forEach((item) => {
+    item.addEventListener("click", (e) => {
+      const el = e.currentTarget as HTMLElement;
+      const size = el.getAttribute("data-vctx-size") as "small" | "medium" | "large";
+      if (size) setGridSize(size);
+      closeViewContextMenu();
+    });
+  });
+
+  // 3. Ordenação com alternância dinâmica
+  viewContextMenu.querySelectorAll("[data-vctx-sort]").forEach((item) => {
+    item.addEventListener("click", (e) => {
+      const el = e.currentTarget as HTMLElement;
+      const sortField = el.getAttribute("data-vctx-sort");
+      if (sortField) {
+        toggleSortByField(sortField);
+        updateViewContextMenuState();
+      }
+      closeViewContextMenu();
+    });
+  });
+
+  // 4. Agrupar por
+  viewContextMenu.querySelectorAll("[data-vctx-group]").forEach((item) => {
+    item.addEventListener("click", (e) => {
+      const el = e.currentTarget as HTMLElement;
+      const group = el.getAttribute("data-vctx-group") as GroupByMode;
+      if (group) setGroupBy(group);
+      closeViewContextMenu();
+    });
+  });
+
+  // 5. Ações rápidas de sincronização e sorteio
+  document.getElementById("vctx-sync-action")?.addEventListener("click", () => {
+    closeViewContextMenu();
+    handleSyncProject();
+  });
+
+  document.getElementById("vctx-random-action")?.addEventListener("click", () => {
+    closeViewContextMenu();
+    openRandomModal();
+  });
 }
 
 // ============================================================
@@ -3813,7 +4036,7 @@ window.addEventListener("DOMContentLoaded", () => {
       const isAlreadyOpen = !targetMenu.classList.contains("hidden");
       closeAllMenubarDropdowns();
       projectDropdownMenu.classList.add("hidden");
-      sortDropdownMenu.classList.add("hidden");
+      sortDropdownMenu?.classList.add("hidden");
 
       if (!isAlreadyOpen) {
         targetMenu.classList.remove("hidden");
@@ -4001,7 +4224,7 @@ window.addEventListener("DOMContentLoaded", () => {
     e.stopPropagation();
     closeAllMenubarDropdowns();
     projectDropdownMenu.classList.toggle("hidden");
-    sortDropdownMenu.classList.add("hidden");
+    sortDropdownMenu?.classList.add("hidden");
   });
 
   // Renomear Projeto
@@ -4071,11 +4294,11 @@ window.addEventListener("DOMContentLoaded", () => {
   btnViewGrid?.addEventListener("click", () => setViewMode("grid"));
   btnViewTable?.addEventListener("click", () => setViewMode("table"));
 
-  // Agrupamento Dinâmico Dropdown
+  // Agrupamento Dinâmico Dropdown (se presente)
   btnGroupDropdown?.addEventListener("click", (e) => {
     e.stopPropagation();
     closeAllMenubarDropdowns();
-    sortDropdownMenu.classList.add("hidden");
+    sortDropdownMenu?.classList.add("hidden");
     projectDropdownMenu.classList.add("hidden");
     groupDropdownMenu?.classList.toggle("hidden");
   });
@@ -4091,12 +4314,12 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Ordenação Dropdown
-  btnSortDropdown.addEventListener("click", (e) => {
+  // Ordenação Dropdown (se presente)
+  btnSortDropdown?.addEventListener("click", (e) => {
     e.stopPropagation();
     closeAllMenubarDropdowns();
     groupDropdownMenu?.classList.add("hidden");
-    sortDropdownMenu.classList.toggle("hidden");
+    sortDropdownMenu?.classList.toggle("hidden");
     projectDropdownMenu.classList.add("hidden");
   });
 
@@ -4107,7 +4330,7 @@ window.addEventListener("DOMContentLoaded", () => {
       const mode = el.getAttribute("data-sort") as SortMode;
       const label = el.textContent?.trim() || "Nome (A-Z)";
       setSortMode(mode, label);
-      sortDropdownMenu.classList.add("hidden");
+      sortDropdownMenu?.classList.add("hidden");
     });
   });
 
@@ -4120,12 +4343,15 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  initViewContextMenu();
+
   window.addEventListener("click", () => {
     closeAllMenubarDropdowns();
     projectDropdownMenu.classList.add("hidden");
-    sortDropdownMenu.classList.add("hidden");
+    sortDropdownMenu?.classList.add("hidden");
     groupDropdownMenu?.classList.add("hidden");
     closeContextMenu();
+    closeViewContextMenu();
   });
 
   // Projetos & QuickPick Estilo VS Code
@@ -4549,6 +4775,37 @@ window.addEventListener("DOMContentLoaded", () => {
   // Prevenir comportamento padrão do navegador
   window.addEventListener("dragover", (e) => e.preventDefault());
   window.addEventListener("drop", (e) => e.preventDefault());
+
+  // Prevenir menu padrão do Chromium e abrir menu customizado de visualização
+  window.addEventListener("contextmenu", (e: MouseEvent) => {
+    e.preventDefault();
+
+    const target = e.target as HTMLElement;
+
+    // Se estiver digitando ou interagindo com input/select, não abre menu de visualização
+    if (target.closest("input, textarea, select")) {
+      return;
+    }
+
+    // Se houver algum modal aberto, não abre menu da visualização
+    const openModal = document.querySelector(".modal-overlay:not(.hidden)");
+    if (openModal) {
+      return;
+    }
+
+    // Se clicou em tag chip no menu lateral (já tem seu handler próprio)
+    if (target.closest(".tag-chip")) {
+      return;
+    }
+
+    // Se clicou em um card ou linha de vídeo (o handler do card já abre o context-menu de vídeo)
+    if (target.closest(".video-card") || target.closest(".video-table-row") || target.closest(".notion-card")) {
+      return;
+    }
+
+    // Em qualquer outro lugar do aplicativo, abre o menu de contexto de visualização
+    openViewContextMenu(e);
+  });
 
   // Sincronização Inteligente Automática ao Retornar à Janela do App (Window Focus)
   let lastFocusSyncTime = 0;

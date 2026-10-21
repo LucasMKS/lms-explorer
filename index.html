@@ -312,63 +312,6 @@
               </button>
             </div>
 
-            <!-- Seletor de Agrupamento Dinâmico (Group By) -->
-            <div class="group-selector-container">
-              <button id="btn-group-dropdown" class="app-pill-btn" title="Agrupar vídeos por critérios dinâmicos">
-                <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-                <span id="group-label">Agrupar: Nenhum</span>
-                <svg class="chevron-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </button>
-              <div id="group-dropdown-menu" class="sort-dropdown-menu hidden">
-                <div class="group-option active" data-group="none">Nenhum (Padrão)</div>
-                <div class="group-option" data-group="folder">Pasta de Origem</div>
-                <div class="group-option" data-group="tag">Tag Principal</div>
-                <div class="group-option" data-group="date">Data de Modificação</div>
-                <div class="group-option" data-group="format">Formato (MP4, MKV...)</div>
-                <div class="group-option" data-group="status">Status (Assistidos / Novos)</div>
-              </div>
-            </div>
-
-            <!-- Seletor de Ordenação (Sort By) -->
-            <div class="sort-selector-container">
-              <button id="btn-sort-dropdown" class="app-pill-btn">
-                <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="m3 16 4 4 4-4" />
-                  <path d="M7 20V4" />
-                  <path d="m21 8-4-4-4 4" />
-                  <path d="M17 4v16" />
-                </svg>
-                <span id="sort-label">Nome (A-Z)</span>
-                <svg class="chevron-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </button>
-              <div id="sort-dropdown-menu" class="sort-dropdown-menu hidden">
-                <div class="sort-option" data-sort="name-asc">Nome: A → Z</div>
-                <div class="sort-option" data-sort="name-desc">Nome: Z → A</div>
-                <div class="sort-option" data-sort="date-desc">Data: Mais Recentes</div>
-                <div class="sort-option" data-sort="date-asc">Data: Mais Antigos</div>
-                <div class="sort-option" data-sort="size-desc">Tamanho: Maior → Menor</div>
-                <div class="sort-option" data-sort="size-asc">Tamanho: Menor → Maior</div>
-                <div class="sort-option" data-sort="duration-desc">Duração: Mais Longos</div>
-                <div class="sort-option" data-sort="duration-asc">Duração: Mais Curtos</div>
-                <div class="sort-option" data-sort="plays-desc">Mais Assistidos</div>
-                <div class="sort-option" data-sort="plays-asc">Nunca Assistidos</div>
-                <div class="sort-option" data-sort="recent-played">Assistidos Recentemente</div>
-              </div>
-            </div>
-
-            <!-- Segmented Control de Zoom [P | M | G] -->
-            <div class="zoom-segmented-control" title="Ajustar tamanho dos cards">
-              <button class="zoom-btn" data-size="small">P</button>
-              <button class="zoom-btn active" data-size="medium">M</button>
-              <button class="zoom-btn" data-size="large">G</button>
-            </div>
-
             <!-- Botão Abrir Aleatório -->
             <button id="btn-open-random-modal" class="app-pill-btn primary-glow" title="Abrir Sorteador Aleatório com filtros (Ctrl+R)">
               <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -919,6 +862,167 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
         </span>
         <span>Desvincular do projeto</span>
+      </div>
+    </div>
+
+    <!-- Menu de Contexto da Área de Trabalho / Visualização (Botão Direito Fora de Vídeos) -->
+    <div id="view-context-menu" class="context-menu hidden">
+      <!-- Exibir / Tamanho -->
+      <div class="context-menu-item has-submenu" id="vctx-view-item">
+        <span class="ctx-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </span>
+        <span class="ctx-item-text">Exibir</span>
+        <svg class="ctx-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+
+        <div class="context-submenu">
+          <div class="context-submenu-header">MODO DE EXIBIÇÃO</div>
+          <div class="context-menu-item" id="vctx-mode-grid">
+            <span class="ctx-check-indicator" id="vctx-check-mode-grid">✓</span>
+            <span class="ctx-item-text">Grade de Cards</span>
+          </div>
+          <div class="context-menu-item" id="vctx-mode-table">
+            <span class="ctx-check-indicator" id="vctx-check-mode-table"></span>
+            <span class="ctx-item-text">Tabela Detalhada</span>
+          </div>
+          <div class="context-menu-divider"></div>
+          <div class="context-submenu-header">TAMANHO DOS CARDS</div>
+          <div class="context-menu-item" data-vctx-size="small">
+            <span class="ctx-check-indicator" id="vctx-check-size-small"></span>
+            <span class="ctx-item-text">Pequeno (P)</span>
+          </div>
+          <div class="context-menu-item" data-vctx-size="medium">
+            <span class="ctx-check-indicator" id="vctx-check-size-medium">✓</span>
+            <span class="ctx-item-text">Médio (M)</span>
+          </div>
+          <div class="context-menu-item" data-vctx-size="large">
+            <span class="ctx-check-indicator" id="vctx-check-size-large"></span>
+            <span class="ctx-item-text">Grande (G)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Classificar por (Ordenar por com alternância automática) -->
+      <div class="context-menu-item has-submenu" id="vctx-sort-item">
+        <span class="ctx-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m3 16 4 4 4-4" />
+            <path d="M7 20V4" />
+            <path d="m21 8-4-4-4 4" />
+            <path d="M17 4v16" />
+          </svg>
+        </span>
+        <span class="ctx-item-text">Classificar por</span>
+        <svg class="ctx-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+
+        <div class="context-submenu" style="min-width: 235px;">
+          <div class="context-submenu-header">ORDENAÇÃO (CLIQUE P/ ALTERNAR)</div>
+          <div class="context-menu-item" data-vctx-sort="name">
+            <span class="ctx-check-indicator" id="vctx-check-sort-name">✓</span>
+            <span class="ctx-item-text" id="vctx-label-sort-name">Nome</span>
+            <span class="vctx-sort-dir-arrow" id="vctx-arrow-sort-name">A → Z</span>
+          </div>
+          <div class="context-menu-item" data-vctx-sort="date">
+            <span class="ctx-check-indicator" id="vctx-check-sort-date"></span>
+            <span class="ctx-item-text" id="vctx-label-sort-date">Data</span>
+            <span class="vctx-sort-dir-arrow" id="vctx-arrow-sort-date"></span>
+          </div>
+          <div class="context-menu-item" data-vctx-sort="size">
+            <span class="ctx-check-indicator" id="vctx-check-sort-size"></span>
+            <span class="ctx-item-text" id="vctx-label-sort-size">Tamanho</span>
+            <span class="vctx-sort-dir-arrow" id="vctx-arrow-sort-size"></span>
+          </div>
+          <div class="context-menu-item" data-vctx-sort="duration">
+            <span class="ctx-check-indicator" id="vctx-check-sort-duration"></span>
+            <span class="ctx-item-text" id="vctx-label-sort-duration">Duração</span>
+            <span class="vctx-sort-dir-arrow" id="vctx-arrow-sort-duration"></span>
+          </div>
+          <div class="context-menu-item" data-vctx-sort="plays">
+            <span class="ctx-check-indicator" id="vctx-check-sort-plays"></span>
+            <span class="ctx-item-text" id="vctx-label-sort-plays">Reproduções</span>
+            <span class="vctx-sort-dir-arrow" id="vctx-arrow-sort-plays"></span>
+          </div>
+          <div class="context-menu-item" data-vctx-sort="recent-played">
+            <span class="ctx-check-indicator" id="vctx-check-sort-recent-played"></span>
+            <span class="ctx-item-text" id="vctx-label-sort-recent-played">Última Visualização</span>
+            <span class="vctx-sort-dir-arrow" id="vctx-arrow-sort-recent-played"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Agrupar por -->
+      <div class="context-menu-item has-submenu" id="vctx-group-item">
+        <span class="ctx-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </span>
+        <span class="ctx-item-text">Agrupar por</span>
+        <svg class="ctx-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+
+        <div class="context-submenu">
+          <div class="context-submenu-header">CRITÉRIO DE AGRUPAMENTO</div>
+          <div class="context-menu-item" data-vctx-group="none">
+            <span class="ctx-check-indicator" id="vctx-check-group-none">✓</span>
+            <span class="ctx-item-text">Nenhum (Padrão)</span>
+          </div>
+          <div class="context-menu-item" data-vctx-group="folder">
+            <span class="ctx-check-indicator" id="vctx-check-group-folder"></span>
+            <span class="ctx-item-text">Pasta de Origem</span>
+          </div>
+          <div class="context-menu-item" data-vctx-group="tag">
+            <span class="ctx-check-indicator" id="vctx-check-group-tag"></span>
+            <span class="ctx-item-text">Tag Principal</span>
+          </div>
+          <div class="context-menu-item" data-vctx-group="date">
+            <span class="ctx-check-indicator" id="vctx-check-group-date"></span>
+            <span class="ctx-item-text">Data de Modificação</span>
+          </div>
+          <div class="context-menu-item" data-vctx-group="format">
+            <span class="ctx-check-indicator" id="vctx-check-group-format"></span>
+            <span class="ctx-item-text">Formato (MP4, MKV...)</span>
+          </div>
+          <div class="context-menu-item" data-vctx-group="status">
+            <span class="ctx-check-indicator" id="vctx-check-group-status"></span>
+            <span class="ctx-item-text">Status (Assistidos / Novos)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="context-menu-divider"></div>
+
+      <!-- Ações rápidas -->
+      <div class="context-menu-item" id="vctx-sync-action">
+        <span class="ctx-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+            <path d="M16 21h5v-5" />
+          </svg>
+        </span>
+        <span class="ctx-item-text">Sincronizar Arquivos</span>
+        <span class="menubar-shortcut" style="margin-left: auto; font-size: 0.72rem; color: var(--text-muted);">F5</span>
+      </div>
+
+      <div class="context-menu-item" id="vctx-random-action">
+        <span class="ctx-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect width="18" height="18" x="3" y="3" rx="2" />
+            <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" />
+          </svg>
+        </span>
+        <span class="ctx-item-text">Sorteio Aleatório...</span>
+        <span class="menubar-shortcut" style="margin-left: auto; font-size: 0.72rem; color: var(--text-muted);">Ctrl+R</span>
       </div>
     </div>
 
