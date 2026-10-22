@@ -1294,8 +1294,15 @@ fn set_video_tags(project_id: String, video_path: String, tags: Vec<String>) -> 
 }
 
 #[tauri::command]
-fn open_in_player(app: tauri::AppHandle, video_path: String, preferred_player: Option<String>) -> Result<(), String> {
+fn open_in_player(
+    app: tauri::AppHandle,
+    video_path: String,
+    preferred_player: Option<String>,
+    single_instance: Option<bool>,
+) -> Result<(), String> {
     let pref = preferred_player.unwrap_or_else(|| "vlc".to_string()).to_lowercase();
+    let reuse = single_instance.unwrap_or(true);
+
     if pref != "system" {
         let candidate_paths: &[&str] = match pref.as_str() {
             "vlc" => &[
@@ -1319,12 +1326,29 @@ fn open_in_player(app: tauri::AppHandle, video_path: String, preferred_player: O
             _ => &[],
         };
 
+        let mut player_args: Vec<&str> = Vec::new();
+        if pref == "vlc" {
+            if reuse {
+                player_args.push("--one-instance");
+                player_args.push("--no-playlist-enqueue");
+            } else {
+                player_args.push("--no-one-instance");
+            }
+        } else if pref == "mpc" {
+            if reuse {
+                player_args.push("/play");
+            }
+        }
+
         for player_path in candidate_paths {
             if Path::new(player_path).exists() {
-                let res = Command::new(player_path)
-                    .arg(&video_path)
-                    .creation_flags(CREATE_NO_WINDOW)
-                    .spawn();
+                let mut cmd = Command::new(player_path);
+                for arg in &player_args {
+                    cmd.arg(arg);
+                }
+                cmd.arg(&video_path);
+                cmd.creation_flags(CREATE_NO_WINDOW);
+                let res = cmd.spawn();
                 if res.is_ok() {
                     return Ok(());
                 }
@@ -1340,11 +1364,13 @@ fn open_in_player(app: tauri::AppHandle, video_path: String, preferred_player: O
             _ => "",
         };
         if !exe_name.is_empty() {
-            if let Ok(_) = Command::new(exe_name)
-                .arg(&video_path)
-                .creation_flags(CREATE_NO_WINDOW)
-                .spawn()
-            {
+            let mut cmd = Command::new(exe_name);
+            for arg in &player_args {
+                cmd.arg(arg);
+            }
+            cmd.arg(&video_path);
+            cmd.creation_flags(CREATE_NO_WINDOW);
+            if let Ok(_) = cmd.spawn() {
                 return Ok(());
             }
         }

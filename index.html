@@ -312,18 +312,26 @@
               </button>
             </div>
 
-            <!-- Botão Abrir Aleatório -->
-            <button id="btn-open-random-modal" class="app-pill-btn primary-glow" title="Abrir Sorteador Aleatório com filtros (Ctrl+R)">
-              <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                <path d="M16 8h.01" />
-                <path d="M8 8h.01" />
-                <path d="M8 16h.01" />
-                <path d="M16 16h.01" />
-                <path d="M12 12h.01" />
-              </svg>
-              <span>Abrir Aleatório</span>
-            </button>
+            <!-- Botão Sorteador Aleatório Dividido (Sortear Direto + Configurações) -->
+            <div class="split-pill-group primary-glow" id="random-split-group" title="Sorteador Aleatório">
+              <button id="btn-execute-random-direct" class="split-pill-btn main" title="Sortear e reproduzir vídeo aleatório (Ctrl+R)">
+                <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                  <path d="M16 8h.01" />
+                  <path d="M8 8h.01" />
+                  <path d="M8 16h.01" />
+                  <path d="M16 16h.01" />
+                  <path d="M12 12h.01" />
+                </svg>
+                <span>Aleatório</span>
+              </button>
+              <button id="btn-open-random-config" class="split-pill-btn config" title="Configurar filtros do sorteador (favoritos, tags, palavras) [Ctrl+Shift+R]">
+                <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
           </div>
         </header>
 
@@ -584,6 +592,19 @@
                     <option value="mpc">MPC-HC</option>
                     <option value="wmplayer">Windows Media Player</option>
                   </select>
+                </div>
+
+                <div class="settings-divider"></div>
+
+                <div class="subview-setting-row" id="subview-player-reuse-row">
+                  <div class="subview-setting-info">
+                    <span class="subview-setting-label">Reutilizar Janela do Player (Instância Única)</span>
+                    <span class="subview-setting-desc">Ao abrir um novo vídeo no VLC ou reprodutor, toca na janela que já está aberta em vez de criar uma nova cópia.</span>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" id="subview-setting-player-single-instance" checked />
+                    <span class="toggle-slider"></span>
+                  </label>
                 </div>
               </div>
 
@@ -1125,68 +1146,145 @@
     <!-- Modal: Sorteio Aleatório Avançado (Shuffle) -->
     <div id="random-modal" class="modal-overlay hidden">
       <div class="modal-card random-dialog">
+        <!-- Cabeçalho -->
         <div class="modal-title-row">
           <div class="modal-heading">
-            <div class="modal-icon-badge">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M16 8h.01"/><path d="M8 8h.01"/><path d="M8 16h.01"/><path d="M16 16h.01"/><path d="M12 12h.01"/></svg>
+            <div class="modal-icon-badge random-glow-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                <path d="M16 8h.01M8 8h.01M8 16h.01M16 16h.01M12 12h.01"/>
+              </svg>
             </div>
-            <h3>Abrir Aleatório com Filtros</h3>
+            <div>
+              <h3>Sorteador Inteligente</h3>
+              <p class="modal-subtitle">Sorteie vídeos aleatórios com critérios personalizados sem repetição.</p>
+            </div>
           </div>
-          <button id="btn-close-random-modal" class="modal-close-icon-btn">
+          <button id="btn-close-random-modal" class="modal-close-icon-btn" title="Fechar (Esc)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
 
-        <p class="modal-desc">Configure os critérios para o sorteio. O aplicativo filtrará sua biblioteca instantaneamente e abrirá o vídeo sorteado no reprodutor.</p>
-
-        <!-- Filtro por Nome / Palavras no Título -->
-        <div class="random-option-group">
-          <label class="option-label">Palavras no Nome do Vídeo (separadas por espaço):</label>
-          <div class="random-search-input-wrap">
+        <!-- Seção 1: Busca por Palavras no Título -->
+        <div class="random-filter-card">
+          <div class="random-section-header">
+            <span class="random-section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              Palavras no Título do Vídeo
+            </span>
+          </div>
+          <div class="random-search-input-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+            </svg>
             <input 
               type="text" 
               id="random-title-input" 
-              class="app-input-field" 
-              style="width: 100%; box-sizing: border-box; background: var(--bg-surface-elevated); color: var(--text-primary); border: 1px solid var(--border-medium); border-radius: 6px; padding: 0.55rem 0.75rem; font-size: 0.88rem;"
-              placeholder="Ex: gameplay corrida 1080p (busca vídeos contendo essas palavras)..."
+              class="random-search-input-field" 
+              placeholder="Ex: gameplay corrida 1080p..."
               autocomplete="off"
               spellcheck="false"
             />
+            <button type="button" id="btn-clear-random-title" class="random-search-clear-btn hidden" title="Limpar pesquisa">✕</button>
+          </div>
+          <span class="random-input-hint">Separe palavras por espaço para exigir todos os termos. Pressione <kbd class="kbd-hint">Enter ↵</kbd> para sortear direto.</span>
+        </div>
+
+        <!-- Seção 2: Status de Favoritos -->
+        <div class="random-filter-card">
+          <div class="random-section-header">
+            <span class="random-section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              Status de Favoritos
+            </span>
+          </div>
+          <div class="random-fav-segmented" id="random-fav-control">
+            <button class="segment-btn active" data-val="any">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+              <span>Qualquer Vídeo</span>
+            </button>
+            <button class="segment-btn" data-val="only_fav">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" style="color: #facc15;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <span>Apenas Favoritos</span>
+            </button>
+            <button class="segment-btn" data-val="not_fav">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <span>Não Favoritados</span>
+            </button>
           </div>
         </div>
 
-        <!-- Filtro de Favoritos -->
-        <div class="random-option-group">
-          <label class="option-label">Status de Favorito:</label>
-          <div class="pill-segmented-control" id="random-fav-control">
-            <button class="segment-btn active" data-val="any">Qualquer Vídeo</button>
-            <button class="segment-btn" data-val="only_fav">Apenas Favoritos ⭐</button>
-            <button class="segment-btn" data-val="not_fav">Não Favoritados</button>
+        <!-- Seção 3: Tags com Abas Elegantes -->
+        <div class="random-tags-card">
+          <div class="random-tags-tabs">
+            <button type="button" class="random-tag-tab-btn active" id="tab-btn-include-tags" data-tab="include">
+              <span class="tab-indicator inc"></span>
+              <span>Tags Obrigatórias</span>
+              <span class="tab-count-badge" id="include-tags-count-badge">0</span>
+            </button>
+            <button type="button" class="random-tag-tab-btn" id="tab-btn-exclude-tags" data-tab="exclude">
+              <span class="tab-indicator exc"></span>
+              <span>Tags Bloqueadas (Excluir)</span>
+              <span class="tab-count-badge" id="exclude-tags-count-badge">0</span>
+            </button>
+          </div>
+
+          <div class="random-tag-tab-pane" id="tab-pane-include">
+            <div class="random-tag-panel-header">
+              <span class="panel-hint">O vídeo sorteado DEVE conter todas as tags marcadas:</span>
+              <button type="button" class="mini-text-action" id="btn-clear-inc-tags" style="display: none;">Desmarcar todas</button>
+            </div>
+            <div id="random-include-tags" class="tags-selector-grid"></div>
+          </div>
+
+          <div class="random-tag-tab-pane hidden" id="tab-pane-exclude">
+            <div class="random-tag-panel-header">
+              <span class="panel-hint">O vídeo sorteado NÃO PODE conter nenhuma das tags marcadas:</span>
+              <button type="button" class="mini-text-action" id="btn-clear-exc-tags" style="display: none;">Desmarcar todas</button>
+            </div>
+            <div id="random-exclude-tags" class="tags-selector-grid"></div>
           </div>
         </div>
 
-        <!-- Tags Obrigatórias -->
-        <div class="random-option-group">
-          <label class="option-label">O vídeo DEVE conter estas tags (Incluir):</label>
-          <div id="random-include-tags" class="tags-selector-grid"></div>
+        <!-- Card de Status da Rodada e Elegíveis em Tempo Real -->
+        <div class="random-status-card" id="random-status-card">
+          <div class="random-status-info">
+            <div class="pulse-dot" id="random-status-dot"></div>
+            <div class="random-status-texts">
+              <span class="random-status-headline" id="random-status-headline">
+                <strong id="random-matching-count">0</strong> vídeos elegíveis
+              </span>
+              <span class="random-status-subline" id="random-status-subline">
+                <span id="random-unplayed-count">0</span> restantes nesta rodada sem repetição
+              </span>
+            </div>
+          </div>
+          <div class="random-status-progress-wrap">
+            <div class="random-status-progress-bar" id="random-cycle-progress-bar" style="width: 100%;"></div>
+          </div>
         </div>
 
-        <!-- Tags Bloqueadas -->
-        <div class="random-option-group">
-          <label class="option-label">O vídeo NÃO PODE conter estas tags (Excluir):</label>
-          <div id="random-exclude-tags" class="tags-selector-grid"></div>
-        </div>
-
+        <!-- Rodapé do Modal -->
         <div class="random-modal-footer">
-          <div class="matching-count-badge">
-            <span id="random-matching-count">0</span> vídeos elegíveis para o sorteio
+          <div class="random-footer-left">
+            <button type="button" id="btn-reset-random-cycle" class="app-pill-btn subtle" title="Zerar a rodada e permitir sortear todos novamente sem alterar filtros">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+              <span>Zerar Rodada</span>
+            </button>
+            <button type="button" id="btn-reset-random-config" class="app-pill-btn subtle" title="Limpar todos os filtros configurados">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <span>Limpar Filtros</span>
+            </button>
           </div>
-          <button id="btn-execute-random-play" class="app-pill-btn primary-glow large">
-            <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="6 4 20 12 6 20 6 4" fill="currentColor"/>
-            </svg>
-            <span>Sortear e Reproduzir</span>
-          </button>
+          <div class="random-footer-right">
+            <button type="button" id="btn-cancel-random-modal" class="app-pill-btn subtle">Cancelar</button>
+            <button id="btn-execute-random-play" class="app-pill-btn primary-glow large">
+              <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="6 4 20 12 6 20 6 4" fill="currentColor"/>
+              </svg>
+              <span>Sortear e Reproduzir</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

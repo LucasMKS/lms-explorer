@@ -278,6 +278,7 @@ let isQueuePaused = false;
 // Configurações do Aplicativo
 let hoverScrubbingEnabled: boolean = localStorage.getItem("lms_hover_scrub") !== "false";
 let preferredPlayer: string = localStorage.getItem("lms_preferred_player") || "vlc";
+let playerSingleInstance: boolean = localStorage.getItem("lms_player_single_instance") !== "false";
 let concurrencySetting: number = parseInt(localStorage.getItem("lms_concurrency") || "3", 10);
 
 // Estado dos Menus e Modais
@@ -291,6 +292,7 @@ let randomFavMode: FavFilterMode = "any";
 let randomTitleFilter: string = "";
 let randomIncludeTags: Set<string> = new Set();
 let randomExcludeTags: Set<string> = new Set();
+let randomPlayedPaths: Set<string> = new Set();
 
 // Lote Tags Modal Mode
 let batchTagMode: "add" | "remove" = "add";
@@ -320,7 +322,8 @@ const subviewBtnProjectPassword = document.getElementById("subview-btn-project-p
 const subviewPasswordBtnLabel = document.getElementById("subview-password-btn-label") as HTMLElement | null;
 const btnViewStats = document.getElementById("btn-view-stats") as HTMLButtonElement;
 const statsBadge = document.getElementById("stats-badge") as HTMLElement;
-const btnOpenRandomModal = document.getElementById("btn-open-random-modal") as HTMLButtonElement;
+const btnExecuteRandomDirect = document.getElementById("btn-execute-random-direct") as HTMLButtonElement | null;
+const btnOpenRandomConfig = document.getElementById("btn-open-random-config") as HTMLButtonElement | null;
 
 // Toolbar & Filtros
 const appContentTopbar = document.getElementById("app-content-topbar") as HTMLElement | null;
@@ -484,12 +487,28 @@ const btnSaveTags = document.getElementById("btn-save-tags") as HTMLButtonElemen
 
 const randomModal = document.getElementById("random-modal") as HTMLDivElement;
 const btnCloseRandomModal = document.getElementById("btn-close-random-modal") as HTMLButtonElement;
+const btnCancelRandomModal = document.getElementById("btn-cancel-random-modal") as HTMLButtonElement | null;
 const randomFavControl = document.getElementById("random-fav-control") as HTMLDivElement;
 const randomIncludeTagsContainer = document.getElementById("random-include-tags") as HTMLDivElement;
 const randomExcludeTagsContainer = document.getElementById("random-exclude-tags") as HTMLDivElement;
 const randomMatchingCount = document.getElementById("random-matching-count") as HTMLElement;
+const randomUnplayedCount = document.getElementById("random-unplayed-count") as HTMLElement | null;
 const randomTitleInput = document.getElementById("random-title-input") as HTMLInputElement | null;
+const btnClearRandomTitle = document.getElementById("btn-clear-random-title") as HTMLButtonElement | null;
 const btnExecuteRandomPlay = document.getElementById("btn-execute-random-play") as HTMLButtonElement;
+const btnResetRandomCycle = document.getElementById("btn-reset-random-cycle") as HTMLButtonElement | null;
+const btnResetRandomConfig = document.getElementById("btn-reset-random-config") as HTMLButtonElement | null;
+const tabBtnIncludeTags = document.getElementById("tab-btn-include-tags") as HTMLButtonElement | null;
+const tabBtnExcludeTags = document.getElementById("tab-btn-exclude-tags") as HTMLButtonElement | null;
+const tabPaneInclude = document.getElementById("tab-pane-include") as HTMLDivElement | null;
+const tabPaneExclude = document.getElementById("tab-pane-exclude") as HTMLDivElement | null;
+const includeTagsCountBadge = document.getElementById("include-tags-count-badge") as HTMLElement | null;
+const excludeTagsCountBadge = document.getElementById("exclude-tags-count-badge") as HTMLElement | null;
+const btnClearIncTags = document.getElementById("btn-clear-inc-tags") as HTMLButtonElement | null;
+const btnClearExcTags = document.getElementById("btn-clear-exc-tags") as HTMLButtonElement | null;
+const randomStatusCard = document.getElementById("random-status-card") as HTMLDivElement | null;
+const randomStatusDot = document.getElementById("random-status-dot") as HTMLDivElement | null;
+const randomCycleProgressBar = document.getElementById("random-cycle-progress-bar") as HTMLDivElement | null;
 
 // Duplicados Modal
 const duplicatesModal = document.getElementById("duplicates-modal") as HTMLDivElement | null;
@@ -517,6 +536,7 @@ const btnOpenSettings = document.getElementById("btn-open-settings") as HTMLButt
 const menubarBtnSettings = document.getElementById("menubar-btn-settings") as HTMLButtonElement;
 const subviewSettingHoverScrub = document.getElementById("subview-setting-hover-scrub") as HTMLInputElement;
 const subviewSettingPlayer = document.getElementById("subview-setting-player") as HTMLSelectElement;
+const subviewSettingPlayerSingleInstance = document.getElementById("subview-setting-player-single-instance") as HTMLInputElement | null;
 const subviewSettingConcurrency = document.getElementById("subview-setting-concurrency") as HTMLSelectElement;
 const subviewBtnClearCache = document.getElementById("subview-btn-clear-cache") as HTMLButtonElement;
 const menubarBtnAbout = document.getElementById("menubar-btn-about") as HTMLButtonElement;
@@ -696,6 +716,10 @@ async function switchProject(projectId: string, password?: string) {
 
     renderProjectDropdown();
     renderSidebarFolders();
+    loadRandomConfig();
+    loadRandomHistory();
+    pruneRandomHistory();
+    updateRandomButtonTooltips();
 
     if (activeSubviewPane === "sources") {
       renderSubviewSources();
@@ -1087,6 +1111,9 @@ function renderSubviewSources() {
 function renderSubviewSettings() {
   subviewSettingHoverScrub.checked = hoverScrubbingEnabled;
   subviewSettingPlayer.value = preferredPlayer;
+  if (subviewSettingPlayerSingleInstance) {
+    subviewSettingPlayerSingleInstance.checked = playerSingleInstance;
+  }
   subviewSettingConcurrency.value = concurrencySetting.toString();
 }
 
@@ -2320,7 +2347,11 @@ function updatePlayBadgesInDom(video: VideoItem) {
 // Reproduzir Vídeo
 async function playVideo(videoPath: string) {
   try {
-    invoke("open_in_player", { videoPath, preferredPlayer });
+    invoke("open_in_player", {
+      videoPath,
+      preferredPlayer,
+      singleInstance: playerSingleInstance,
+    });
     if (currentProjectId) {
       invoke<VideoPlayInfo>("record_video_play", { projectId: currentProjectId, videoPath })
         .then((info) => {
@@ -3274,7 +3305,7 @@ function initViewContextMenu() {
 
   document.getElementById("vctx-random-action")?.addEventListener("click", () => {
     closeViewContextMenu();
-    openRandomModal();
+    executeRandomPlay();
   });
 
   // 6. Configura tolerância e suavidade ao passar o mouse entre menus e submenus
@@ -3385,6 +3416,151 @@ function setupSubmenuHoverGrace() {
 // ============================================================
 // MODAL DE SORTEIO ALEATÓRIO (SHUFFLE AVANÇADO)
 // ============================================================
+function saveRandomHistory() {
+  try {
+    const key = currentProjectId ? `lms_random_played_${currentProjectId}` : "lms_random_played";
+    localStorage.setItem(key, JSON.stringify(Array.from(randomPlayedPaths)));
+  } catch (e) {
+    console.error("Erro ao salvar histórico de sorteio:", e);
+  }
+}
+
+function loadRandomHistory() {
+  try {
+    const key = currentProjectId ? `lms_random_played_${currentProjectId}` : "lms_random_played";
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) {
+        randomPlayedPaths = new Set(arr);
+      }
+    } else {
+      randomPlayedPaths = new Set();
+    }
+  } catch (e) {
+    console.error("Erro ao carregar histórico de sorteio:", e);
+    randomPlayedPaths = new Set();
+  }
+}
+
+function pruneRandomHistory() {
+  if (allVideos.length === 0) return;
+  const currentPaths = new Set(allVideos.map((v) => v.path));
+  for (const path of randomPlayedPaths) {
+    if (!currentPaths.has(path)) {
+      randomPlayedPaths.delete(path);
+    }
+  }
+}
+
+function resetRandomCycle() {
+  randomPlayedPaths.clear();
+  saveRandomHistory();
+  updateRandomButtonTooltips();
+  updateRandomModalMatchingCount();
+}
+
+function saveRandomConfig() {
+  try {
+    const config = {
+      favMode: randomFavMode,
+      titleFilter: randomTitleFilter,
+      includeTags: Array.from(randomIncludeTags),
+      excludeTags: Array.from(randomExcludeTags),
+    };
+    localStorage.setItem("lms_random_config", JSON.stringify(config));
+    if (currentProjectId) {
+      localStorage.setItem(`lms_random_config_${currentProjectId}`, JSON.stringify(config));
+    }
+  } catch (e) {
+    console.error("Erro ao salvar config de sorteio:", e);
+  }
+}
+
+function loadRandomConfig() {
+  try {
+    const raw =
+      (currentProjectId && localStorage.getItem(`lms_random_config_${currentProjectId}`)) ||
+      localStorage.getItem("lms_random_config");
+    if (!raw) return;
+    const config = JSON.parse(raw);
+    if (config.favMode && ["any", "only_fav", "not_fav"].includes(config.favMode)) {
+      randomFavMode = config.favMode;
+    }
+    if (typeof config.titleFilter === "string") {
+      randomTitleFilter = config.titleFilter;
+    }
+    if (Array.isArray(config.includeTags)) {
+      randomIncludeTags = new Set(config.includeTags);
+    }
+    if (Array.isArray(config.excludeTags)) {
+      randomExcludeTags = new Set(config.excludeTags);
+    }
+  } catch (e) {
+    console.error("Erro ao carregar config de sorteio:", e);
+  }
+}
+
+function updateRandomButtonTooltips() {
+  const parts: string[] = [];
+  if (randomFavMode === "only_fav") parts.push("Apenas Favoritos");
+  if (randomFavMode === "not_fav") parts.push("Não Favoritados");
+  if (randomTitleFilter.trim()) parts.push(`Nome: "${randomTitleFilter.trim()}"`);
+  if (randomIncludeTags.size > 0) parts.push(`Tags: ${Array.from(randomIncludeTags).map((t) => '#' + t).join(', ')}`);
+  if (randomExcludeTags.size > 0) parts.push(`Excluir: ${Array.from(randomExcludeTags).map((t) => '#' + t).join(', ')}`);
+
+  const matching = getMatchingRandomVideos();
+  const unplayed = matching.filter((v) => !randomPlayedPaths.has(v.path));
+  const remaining = unplayed.length === 0 && matching.length > 0 ? matching.length : unplayed.length;
+  const cycleInfo = matching.length > 0 ? `Rodada: ${remaining}/${matching.length} restantes` : "";
+
+  const hasFilters = parts.length > 0;
+  if (btnExecuteRandomDirect) {
+    const tooltipParts: string[] = [];
+    if (cycleInfo) tooltipParts.push(cycleInfo);
+    if (hasFilters) tooltipParts.push(`Filtros: ${parts.join(" • ")}`);
+
+    btnExecuteRandomDirect.title = tooltipParts.length > 0
+      ? `Sortear e reproduzir vídeo aleatório sem repetir (${tooltipParts.join(" • ")}) [Ctrl+R]`
+      : "Sortear e reproduzir vídeo aleatório sem repetir (Ctrl+R)";
+  }
+  if (btnOpenRandomConfig) {
+    btnOpenRandomConfig.title = hasFilters
+      ? `Configurar filtros do sorteador (Ativo: ${parts.join(" • ")}) [Ctrl+Shift+R]`
+      : "Configurar filtros do sorteador (favoritos, tags, palavras) [Ctrl+Shift+R]";
+    if (hasFilters) {
+      btnOpenRandomConfig.classList.add("has-active-filters");
+    } else {
+      btnOpenRandomConfig.classList.remove("has-active-filters");
+    }
+  }
+}
+
+function resetRandomConfig() {
+  randomFavMode = "any";
+  randomTitleFilter = "";
+  randomIncludeTags.clear();
+  randomExcludeTags.clear();
+  randomPlayedPaths.clear();
+  saveRandomHistory();
+  if (randomTitleInput) {
+    randomTitleInput.value = "";
+  }
+  if (randomFavControl) {
+    randomFavControl.querySelectorAll(".segment-btn").forEach((btn) => {
+      if ((btn as HTMLElement).dataset.val === "any") {
+        btn.classList.add("active");
+      } else {
+        btn.classList.remove("active");
+      }
+    });
+  }
+  saveRandomConfig();
+  updateRandomButtonTooltips();
+  renderRandomModalTagPickers();
+  updateRandomModalMatchingCount();
+}
+
 function openRandomModal() {
   if (allVideos.length === 0) {
     showAlertDialog("Adicione vídeos ao seu projeto antes de sortear!", "Sorteio Aleatório");
@@ -3392,6 +3568,19 @@ function openRandomModal() {
   }
   if (randomTitleInput) {
     randomTitleInput.value = randomTitleFilter;
+    if (btnClearRandomTitle) {
+      btnClearRandomTitle.classList.toggle("hidden", !randomTitleFilter);
+    }
+  }
+  if (randomFavControl) {
+    randomFavControl.querySelectorAll(".segment-btn").forEach((btn) => {
+      const val = (btn as HTMLElement).dataset.val;
+      if (val === randomFavMode) {
+        btn.classList.add("active");
+      } else {
+        btn.classList.remove("active");
+      }
+    });
   }
   renderRandomModalTagPickers();
   updateRandomModalMatchingCount();
@@ -3410,14 +3599,29 @@ function renderRandomModalTagPickers() {
   randomIncludeTagsContainer.innerHTML = "";
   randomExcludeTagsContainer.innerHTML = "";
 
+  if (includeTagsCountBadge) {
+    includeTagsCountBadge.textContent = randomIncludeTags.size.toString();
+    includeTagsCountBadge.classList.toggle("has-count", randomIncludeTags.size > 0);
+  }
+  if (excludeTagsCountBadge) {
+    excludeTagsCountBadge.textContent = randomExcludeTags.size.toString();
+    excludeTagsCountBadge.classList.toggle("has-count", randomExcludeTags.size > 0);
+  }
+  if (btnClearIncTags) {
+    btnClearIncTags.style.display = randomIncludeTags.size > 0 ? "inline" : "none";
+  }
+  if (btnClearExcTags) {
+    btnClearExcTags.style.display = randomExcludeTags.size > 0 ? "inline" : "none";
+  }
+
   if (availableProjectTags.length === 0) {
     const emptySpan1 = document.createElement("span");
-    emptySpan1.className = "section-hint";
+    emptySpan1.className = "panel-hint";
     emptySpan1.textContent = "Nenhuma tag cadastrada neste projeto.";
     randomIncludeTagsContainer.appendChild(emptySpan1);
 
     const emptySpan2 = document.createElement("span");
-    emptySpan2.className = "section-hint";
+    emptySpan2.className = "panel-hint";
     emptySpan2.textContent = "Nenhuma tag cadastrada neste projeto.";
     randomExcludeTagsContainer.appendChild(emptySpan2);
     return;
@@ -3425,10 +3629,18 @@ function renderRandomModalTagPickers() {
 
   for (const tag of availableProjectTags) {
     const colorClass = getTagColorClass(tag);
+    const isInc = randomIncludeTags.has(tag);
+    const isExc = randomExcludeTags.has(tag);
 
+    // Pill de inclusão (Obrigatórias)
     const incBtn = document.createElement("button");
-    incBtn.className = `selectable-tag-pill ${colorClass} ${randomIncludeTags.has(tag) ? "selected" : ""}`;
-    incBtn.textContent = tag;
+    incBtn.type = "button";
+    incBtn.className = `selectable-tag-pill ${colorClass} ${isInc ? "include-selected" : ""}`;
+    incBtn.innerHTML = `
+      <span class="sidebar-tag-dot ${colorClass}"></span>
+      <span>${escapeHtml(tag)}</span>
+      ${isInc ? '<span style="font-weight: 700; margin-left: 2px;">✓</span>' : ""}
+    `;
     incBtn.onclick = () => {
       if (randomIncludeTags.has(tag)) {
         randomIncludeTags.delete(tag);
@@ -3436,14 +3648,22 @@ function renderRandomModalTagPickers() {
         randomIncludeTags.add(tag);
         randomExcludeTags.delete(tag);
       }
+      saveRandomConfig();
+      updateRandomButtonTooltips();
       renderRandomModalTagPickers();
       updateRandomModalMatchingCount();
     };
     randomIncludeTagsContainer.appendChild(incBtn);
 
+    // Pill de exclusão (Bloqueadas)
     const excBtn = document.createElement("button");
-    excBtn.className = `selectable-tag-pill ${colorClass} ${randomExcludeTags.has(tag) ? "selected" : ""}`;
-    excBtn.textContent = `não #${tag}`;
+    excBtn.type = "button";
+    excBtn.className = `selectable-tag-pill ${colorClass} ${isExc ? "exclude-selected" : ""}`;
+    excBtn.innerHTML = `
+      <span class="sidebar-tag-dot ${colorClass}"></span>
+      <span>${escapeHtml(tag)}</span>
+      ${isExc ? '<span style="font-weight: 700; margin-left: 2px;">✕</span>' : ""}
+    `;
     excBtn.onclick = () => {
       if (randomExcludeTags.has(tag)) {
         randomExcludeTags.delete(tag);
@@ -3451,6 +3671,8 @@ function renderRandomModalTagPickers() {
         randomExcludeTags.add(tag);
         randomIncludeTags.delete(tag);
       }
+      saveRandomConfig();
+      updateRandomButtonTooltips();
       renderRandomModalTagPickers();
       updateRandomModalMatchingCount();
     };
@@ -3459,14 +3681,17 @@ function renderRandomModalTagPickers() {
 }
 
 function getMatchingRandomVideos(): VideoItem[] {
+  const filterWords = randomTitleFilter.trim()
+    ? normalizeSearchText(randomTitleFilter).split(/\s+/).filter(Boolean)
+    : [];
+
   return allVideos.filter((video) => {
     if (randomFavMode === "only_fav" && !video.is_favorite) return false;
     if (randomFavMode === "not_fav" && video.is_favorite) return false;
 
-    if (randomTitleFilter.trim()) {
-      const words = normalizeSearchText(randomTitleFilter).split(/\s+/).filter(Boolean);
+    if (filterWords.length > 0) {
       const videoName = normalizeSearchText(video.name);
-      for (const word of words) {
+      for (const word of filterWords) {
         if (!videoName.includes(word)) return false;
       }
     }
@@ -3485,19 +3710,100 @@ function getMatchingRandomVideos(): VideoItem[] {
 
 function updateRandomModalMatchingCount() {
   const matching = getMatchingRandomVideos();
-  randomMatchingCount.textContent = matching.length.toString();
-  btnExecuteRandomPlay.disabled = matching.length === 0;
+  const unplayed = matching.filter((v) => !randomPlayedPaths.has(v.path));
+  const isZero = matching.length === 0;
+
+  if (randomMatchingCount) {
+    randomMatchingCount.textContent = matching.length.toString();
+  }
+  if (randomUnplayedCount) {
+    const remaining = unplayed.length === 0 && matching.length > 0 ? matching.length : unplayed.length;
+    randomUnplayedCount.textContent = remaining.toString();
+  }
+
+  // Atualiza barra de progresso da rodada
+  if (randomCycleProgressBar) {
+    const pct = matching.length > 0 ? (unplayed.length / matching.length) * 100 : 0;
+    randomCycleProgressBar.style.width = `${pct}%`;
+  }
+
+  // Alerta visual no card de status quando 0 vídeos correspondem aos filtros
+  if (randomStatusCard && randomStatusDot) {
+    const headline = document.getElementById("random-status-headline");
+    const subline = document.getElementById("random-status-subline");
+
+    if (isZero) {
+      randomStatusCard.classList.add("warning");
+      randomStatusDot.classList.add("warning");
+      if (headline) headline.innerHTML = '<strong style="color: #f87171;">0</strong> vídeos elegíveis';
+      if (subline) subline.textContent = "Nenhum vídeo encontrado com os filtros atuais.";
+    } else {
+      randomStatusCard.classList.remove("warning");
+      randomStatusDot.classList.remove("warning");
+      if (headline) headline.innerHTML = `<strong id="random-matching-count">${matching.length}</strong> vídeos elegíveis`;
+      if (subline) {
+        if (unplayed.length === 0) {
+          subline.textContent = "Rodada completa! O próximo sorteio reembaralhará todos.";
+        } else {
+          subline.innerHTML = `<span id="random-unplayed-count">${unplayed.length}</span> restantes nesta rodada sem repetição`;
+        }
+      }
+    }
+  }
+
+  if (btnResetRandomCycle) {
+    const playedInMatching = matching.length - unplayed.length;
+    btnResetRandomCycle.disabled = playedInMatching === 0;
+    btnResetRandomCycle.style.opacity = playedInMatching === 0 ? "0.45" : "1";
+    btnResetRandomCycle.style.cursor = playedInMatching === 0 ? "default" : "pointer";
+    btnResetRandomCycle.title = playedInMatching > 0
+      ? `Zerar rodada atual (${playedInMatching} já sorteados) e liberar todos os ${matching.length} vídeos novamente`
+      : "Nenhum vídeo foi sorteado nesta rodada ainda";
+  }
+  btnExecuteRandomPlay.disabled = isZero;
 }
 
 function executeRandomPlay() {
-  const eligible = getMatchingRandomVideos();
-  if (eligible.length === 0) {
-    showAlertDialog("Nenhum vídeo corresponde aos filtros configurados para o sorteio!", "Sorteio Aleatório");
+  if (allVideos.length === 0) {
+    showAlertDialog("Adicione vídeos ao seu projeto antes de sortear!", "Sorteio Aleatório");
     return;
   }
 
-  const randomIndex = Math.floor(Math.random() * eligible.length);
-  const pickedVideo = eligible[randomIndex];
+  const eligible = getMatchingRandomVideos();
+  if (eligible.length === 0) {
+    showConfirmDialog({
+      title: "Nenhum Vídeo Encontrado",
+      message: "Nenhum vídeo corresponde aos filtros configurados no sorteador (favoritos, tags ou palavras).\n\nDeseja abrir a tela de configurações para ajustar ou limpar os filtros?",
+      confirmText: "Abrir Configurações",
+      cancelText: "Fechar",
+      type: "info",
+    }).then((openConfig) => {
+      if (openConfig) {
+        openRandomModal();
+      }
+    });
+    return;
+  }
+
+  // Filtra vídeos que ainda não foram sorteados nesta rodada (sem repetição)
+  let unplayed = eligible.filter((v) => !randomPlayedPaths.has(v.path));
+
+  // Quando todos os vídeos elegíveis tiverem sido sorteados, libera todos novamente para uma nova rodada
+  if (unplayed.length === 0) {
+    for (const v of eligible) {
+      randomPlayedPaths.delete(v.path);
+    }
+    unplayed = eligible;
+  }
+
+  const randomIndex = Math.floor(Math.random() * unplayed.length);
+  const pickedVideo = unplayed[randomIndex];
+
+  // Marca este vídeo como já sorteado nesta rodada
+  randomPlayedPaths.add(pickedVideo.path);
+  saveRandomHistory();
+  updateRandomButtonTooltips();
+  updateRandomModalMatchingCount();
 
   closeRandomModal();
 
@@ -4151,6 +4457,11 @@ window.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem("lms_preferred_player", preferredPlayer);
   });
 
+  subviewSettingPlayerSingleInstance?.addEventListener("change", () => {
+    playerSingleInstance = subviewSettingPlayerSingleInstance.checked;
+    localStorage.setItem("lms_player_single_instance", playerSingleInstance ? "true" : "false");
+  });
+
   subviewSettingConcurrency?.addEventListener("change", () => {
     concurrencySetting = parseInt(subviewSettingConcurrency.value, 10);
     localStorage.setItem("lms_concurrency", concurrencySetting.toString());
@@ -4243,7 +4554,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   menuActRandom?.addEventListener("click", () => {
     closeAllMenubarDropdowns();
-    openRandomModal();
+    executeRandomPlay();
   });
 
   menuActStats?.addEventListener("click", () => {
@@ -4327,7 +4638,11 @@ window.addEventListener("DOMContentLoaded", () => {
         selectAllVideos();
       } else if (e.key === "r" || e.key === "R") {
         e.preventDefault();
-        openRandomModal();
+        if (e.shiftKey) {
+          openRandomModal();
+        } else {
+          executeRandomPlay();
+        }
       } else if (e.key === "d" || e.key === "D") {
         e.preventDefault();
         openDuplicatesModal();
@@ -4836,13 +5151,64 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   // Modal de Sorteio
-  btnOpenRandomModal.addEventListener("click", openRandomModal);
+  btnExecuteRandomDirect?.addEventListener("click", executeRandomPlay);
+  btnOpenRandomConfig?.addEventListener("click", openRandomModal);
+  btnResetRandomConfig?.addEventListener("click", resetRandomConfig);
+  btnResetRandomCycle?.addEventListener("click", resetRandomCycle);
   btnCloseRandomModal.addEventListener("click", closeRandomModal);
+  btnCancelRandomModal?.addEventListener("click", closeRandomModal);
   btnExecuteRandomPlay.addEventListener("click", executeRandomPlay);
+
+  tabBtnIncludeTags?.addEventListener("click", () => {
+    tabBtnIncludeTags.classList.add("active");
+    tabBtnExcludeTags?.classList.remove("active");
+    tabPaneInclude?.classList.remove("hidden");
+    tabPaneExclude?.classList.add("hidden");
+  });
+
+  tabBtnExcludeTags?.addEventListener("click", () => {
+    tabBtnExcludeTags.classList.add("active");
+    tabBtnIncludeTags?.classList.remove("active");
+    tabPaneExclude?.classList.remove("hidden");
+    tabPaneInclude?.classList.add("hidden");
+  });
+
+  btnClearIncTags?.addEventListener("click", () => {
+    randomIncludeTags.clear();
+    saveRandomConfig();
+    updateRandomButtonTooltips();
+    renderRandomModalTagPickers();
+    updateRandomModalMatchingCount();
+  });
+
+  btnClearExcTags?.addEventListener("click", () => {
+    randomExcludeTags.clear();
+    saveRandomConfig();
+    updateRandomButtonTooltips();
+    renderRandomModalTagPickers();
+    updateRandomModalMatchingCount();
+  });
 
   randomTitleInput?.addEventListener("input", () => {
     randomTitleFilter = randomTitleInput.value;
+    if (btnClearRandomTitle) {
+      btnClearRandomTitle.classList.toggle("hidden", !randomTitleFilter);
+    }
+    saveRandomConfig();
+    updateRandomButtonTooltips();
     updateRandomModalMatchingCount();
+  });
+
+  btnClearRandomTitle?.addEventListener("click", () => {
+    if (randomTitleInput) {
+      randomTitleInput.value = "";
+      randomTitleFilter = "";
+      btnClearRandomTitle.classList.add("hidden");
+      randomTitleInput.focus();
+      saveRandomConfig();
+      updateRandomButtonTooltips();
+      updateRandomModalMatchingCount();
+    }
   });
 
   randomTitleInput?.addEventListener("keydown", (e) => {
@@ -4861,6 +5227,8 @@ window.addEventListener("DOMContentLoaded", () => {
     randomFavMode = val;
     randomFavControl.querySelectorAll(".segment-btn").forEach((btn) => btn.classList.remove("active"));
     target.classList.add("active");
+    saveRandomConfig();
+    updateRandomButtonTooltips();
     updateRandomModalMatchingCount();
   });
 
@@ -5009,5 +5377,8 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  loadRandomConfig();
+  loadRandomHistory();
+  updateRandomButtonTooltips();
   refreshProjectsList();
 });
