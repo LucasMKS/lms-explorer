@@ -286,12 +286,7 @@ let contextTargetVideo: VideoItem | null = null;
 let activeModalVideo: VideoItem | null = null;
 let modalSelectedTags: Set<string> = new Set();
 
-// Sorteio
-type FavFilterMode = "any" | "only_fav" | "not_fav";
-let randomFavMode: FavFilterMode = "any";
-let randomTitleFilter: string = "";
-let randomIncludeTags: Set<string> = new Set();
-let randomExcludeTags: Set<string> = new Set();
+// Sorteio (Histórico da Rodada sem Repetição)
 let randomPlayedPaths: Set<string> = new Set();
 
 // Lote Tags Modal Mode
@@ -323,7 +318,6 @@ const subviewPasswordBtnLabel = document.getElementById("subview-password-btn-la
 const btnViewStats = document.getElementById("btn-view-stats") as HTMLButtonElement;
 const statsBadge = document.getElementById("stats-badge") as HTMLElement;
 const btnExecuteRandomDirect = document.getElementById("btn-execute-random-direct") as HTMLButtonElement | null;
-const btnOpenRandomConfig = document.getElementById("btn-open-random-config") as HTMLButtonElement | null;
 
 // Toolbar & Filtros
 const appContentTopbar = document.getElementById("app-content-topbar") as HTMLElement | null;
@@ -485,30 +479,6 @@ const btnAddNewTag = document.getElementById("btn-add-new-tag") as HTMLButtonEle
 const modalTagsList = document.getElementById("modal-tags-list") as HTMLDivElement;
 const btnSaveTags = document.getElementById("btn-save-tags") as HTMLButtonElement;
 
-const randomModal = document.getElementById("random-modal") as HTMLDivElement;
-const btnCloseRandomModal = document.getElementById("btn-close-random-modal") as HTMLButtonElement;
-const btnCancelRandomModal = document.getElementById("btn-cancel-random-modal") as HTMLButtonElement | null;
-const randomFavControl = document.getElementById("random-fav-control") as HTMLDivElement;
-const randomIncludeTagsContainer = document.getElementById("random-include-tags") as HTMLDivElement;
-const randomExcludeTagsContainer = document.getElementById("random-exclude-tags") as HTMLDivElement;
-const randomMatchingCount = document.getElementById("random-matching-count") as HTMLElement;
-const randomUnplayedCount = document.getElementById("random-unplayed-count") as HTMLElement | null;
-const randomTitleInput = document.getElementById("random-title-input") as HTMLInputElement | null;
-const btnClearRandomTitle = document.getElementById("btn-clear-random-title") as HTMLButtonElement | null;
-const btnExecuteRandomPlay = document.getElementById("btn-execute-random-play") as HTMLButtonElement;
-const btnResetRandomCycle = document.getElementById("btn-reset-random-cycle") as HTMLButtonElement | null;
-const btnResetRandomConfig = document.getElementById("btn-reset-random-config") as HTMLButtonElement | null;
-const tabBtnIncludeTags = document.getElementById("tab-btn-include-tags") as HTMLButtonElement | null;
-const tabBtnExcludeTags = document.getElementById("tab-btn-exclude-tags") as HTMLButtonElement | null;
-const tabPaneInclude = document.getElementById("tab-pane-include") as HTMLDivElement | null;
-const tabPaneExclude = document.getElementById("tab-pane-exclude") as HTMLDivElement | null;
-const includeTagsCountBadge = document.getElementById("include-tags-count-badge") as HTMLElement | null;
-const excludeTagsCountBadge = document.getElementById("exclude-tags-count-badge") as HTMLElement | null;
-const btnClearIncTags = document.getElementById("btn-clear-inc-tags") as HTMLButtonElement | null;
-const btnClearExcTags = document.getElementById("btn-clear-exc-tags") as HTMLButtonElement | null;
-const randomStatusCard = document.getElementById("random-status-card") as HTMLDivElement | null;
-const randomStatusDot = document.getElementById("random-status-dot") as HTMLDivElement | null;
-const randomCycleProgressBar = document.getElementById("random-cycle-progress-bar") as HTMLDivElement | null;
 
 // Duplicados Modal
 const duplicatesModal = document.getElementById("duplicates-modal") as HTMLDivElement | null;
@@ -716,10 +686,9 @@ async function switchProject(projectId: string, password?: string) {
 
     renderProjectDropdown();
     renderSidebarFolders();
-    loadRandomConfig();
     loadRandomHistory();
     pruneRandomHistory();
-    updateRandomButtonTooltips();
+    updateRandomButtonTooltip();
 
     if (activeSubviewPane === "sources") {
       renderSubviewSources();
@@ -1494,6 +1463,9 @@ function updateUIIndicators(filteredCount: number) {
   navAllVideos?.classList.toggle("active", !filterOnlyFavorites && !filterOnlyUntagged && selectedFilterTags.size === 0);
   filterFavBtn?.classList.toggle("active", filterOnlyFavorites);
   navUntaggedVideos?.classList.toggle("active", filterOnlyUntagged);
+
+  // Atualizar tooltip do botão de sorteio com base nos vídeos visíveis e rodada atual
+  updateRandomButtonTooltip();
 }
 
 // ============================================================
@@ -2379,7 +2351,6 @@ async function toggleFavorite(video: VideoItem) {
     });
     video.is_favorite = isFav;
     renderGrid();
-    updateRandomModalMatchingCount();
   } catch (err) {
     console.error("Erro ao favoritar:", err);
   }
@@ -2506,7 +2477,7 @@ async function handleBatchFavorite() {
     });
 
     clearBatchSelection();
-    updateRandomModalMatchingCount();
+    updateRandomButtonTooltip();
   } catch (err) {
     await showAlertDialog(`Erro ao favoritar em lote: ${err}`, "Erro");
   }
@@ -3308,6 +3279,11 @@ function initViewContextMenu() {
     executeRandomPlay();
   });
 
+  document.getElementById("vctx-random-reset")?.addEventListener("click", () => {
+    closeViewContextMenu();
+    resetRandomCycle(true);
+  });
+
   // 6. Configura tolerância e suavidade ao passar o mouse entre menus e submenus
   setupSubmenuHoverGrace();
 }
@@ -3414,7 +3390,7 @@ function setupSubmenuHoverGrace() {
 }
 
 // ============================================================
-// MODAL DE SORTEIO ALEATÓRIO (SHUFFLE AVANÇADO)
+// SORTEIO ALEATÓRIO (SHUFFLE BASEADO NOS FILTROS DA TELA)
 // ============================================================
 function saveRandomHistory() {
   try {
@@ -3453,315 +3429,48 @@ function pruneRandomHistory() {
   }
 }
 
-function resetRandomCycle() {
-  randomPlayedPaths.clear();
-  saveRandomHistory();
-  updateRandomButtonTooltips();
-  updateRandomModalMatchingCount();
-}
-
-function saveRandomConfig() {
-  try {
-    const config = {
-      favMode: randomFavMode,
-      titleFilter: randomTitleFilter,
-      includeTags: Array.from(randomIncludeTags),
-      excludeTags: Array.from(randomExcludeTags),
-    };
-    localStorage.setItem("lms_random_config", JSON.stringify(config));
-    if (currentProjectId) {
-      localStorage.setItem(`lms_random_config_${currentProjectId}`, JSON.stringify(config));
+async function resetRandomCycle(askConfirm: boolean = false) {
+  if (randomPlayedPaths.size === 0) {
+    if (askConfirm) {
+      await showAlertDialog("A rodada do sorteador já está zerada. Todos os vídeos visíveis estão disponíveis para sorteio!", "Sorteador Aleatório");
     }
-  } catch (e) {
-    console.error("Erro ao salvar config de sorteio:", e);
-  }
-}
-
-function loadRandomConfig() {
-  try {
-    const raw =
-      (currentProjectId && localStorage.getItem(`lms_random_config_${currentProjectId}`)) ||
-      localStorage.getItem("lms_random_config");
-    if (!raw) return;
-    const config = JSON.parse(raw);
-    if (config.favMode && ["any", "only_fav", "not_fav"].includes(config.favMode)) {
-      randomFavMode = config.favMode;
-    }
-    if (typeof config.titleFilter === "string") {
-      randomTitleFilter = config.titleFilter;
-    }
-    if (Array.isArray(config.includeTags)) {
-      randomIncludeTags = new Set(config.includeTags);
-    }
-    if (Array.isArray(config.excludeTags)) {
-      randomExcludeTags = new Set(config.excludeTags);
-    }
-  } catch (e) {
-    console.error("Erro ao carregar config de sorteio:", e);
-  }
-}
-
-function updateRandomButtonTooltips() {
-  const parts: string[] = [];
-  if (randomFavMode === "only_fav") parts.push("Apenas Favoritos");
-  if (randomFavMode === "not_fav") parts.push("Não Favoritados");
-  if (randomTitleFilter.trim()) parts.push(`Nome: "${randomTitleFilter.trim()}"`);
-  if (randomIncludeTags.size > 0) parts.push(`Tags: ${Array.from(randomIncludeTags).map((t) => '#' + t).join(', ')}`);
-  if (randomExcludeTags.size > 0) parts.push(`Excluir: ${Array.from(randomExcludeTags).map((t) => '#' + t).join(', ')}`);
-
-  const matching = getMatchingRandomVideos();
-  const unplayed = matching.filter((v) => !randomPlayedPaths.has(v.path));
-  const remaining = unplayed.length === 0 && matching.length > 0 ? matching.length : unplayed.length;
-  const cycleInfo = matching.length > 0 ? `Rodada: ${remaining}/${matching.length} restantes` : "";
-
-  const hasFilters = parts.length > 0;
-  if (btnExecuteRandomDirect) {
-    const tooltipParts: string[] = [];
-    if (cycleInfo) tooltipParts.push(cycleInfo);
-    if (hasFilters) tooltipParts.push(`Filtros: ${parts.join(" • ")}`);
-
-    btnExecuteRandomDirect.title = tooltipParts.length > 0
-      ? `Sortear e reproduzir vídeo aleatório sem repetir (${tooltipParts.join(" • ")}) [Ctrl+R]`
-      : "Sortear e reproduzir vídeo aleatório sem repetir (Ctrl+R)";
-  }
-  if (btnOpenRandomConfig) {
-    btnOpenRandomConfig.title = hasFilters
-      ? `Configurar filtros do sorteador (Ativo: ${parts.join(" • ")}) [Ctrl+Shift+R]`
-      : "Configurar filtros do sorteador (favoritos, tags, palavras) [Ctrl+Shift+R]";
-    if (hasFilters) {
-      btnOpenRandomConfig.classList.add("has-active-filters");
-    } else {
-      btnOpenRandomConfig.classList.remove("has-active-filters");
-    }
-  }
-}
-
-function resetRandomConfig() {
-  randomFavMode = "any";
-  randomTitleFilter = "";
-  randomIncludeTags.clear();
-  randomExcludeTags.clear();
-  randomPlayedPaths.clear();
-  saveRandomHistory();
-  if (randomTitleInput) {
-    randomTitleInput.value = "";
-  }
-  if (randomFavControl) {
-    randomFavControl.querySelectorAll(".segment-btn").forEach((btn) => {
-      if ((btn as HTMLElement).dataset.val === "any") {
-        btn.classList.add("active");
-      } else {
-        btn.classList.remove("active");
-      }
-    });
-  }
-  saveRandomConfig();
-  updateRandomButtonTooltips();
-  renderRandomModalTagPickers();
-  updateRandomModalMatchingCount();
-}
-
-function openRandomModal() {
-  if (allVideos.length === 0) {
-    showAlertDialog("Adicione vídeos ao seu projeto antes de sortear!", "Sorteio Aleatório");
-    return;
-  }
-  if (randomTitleInput) {
-    randomTitleInput.value = randomTitleFilter;
-    if (btnClearRandomTitle) {
-      btnClearRandomTitle.classList.toggle("hidden", !randomTitleFilter);
-    }
-  }
-  if (randomFavControl) {
-    randomFavControl.querySelectorAll(".segment-btn").forEach((btn) => {
-      const val = (btn as HTMLElement).dataset.val;
-      if (val === randomFavMode) {
-        btn.classList.add("active");
-      } else {
-        btn.classList.remove("active");
-      }
-    });
-  }
-  renderRandomModalTagPickers();
-  updateRandomModalMatchingCount();
-  randomModal.classList.remove("hidden");
-  if (randomTitleInput) {
-    randomTitleInput.focus();
-    randomTitleInput.select();
-  }
-}
-
-function closeRandomModal() {
-  randomModal.classList.add("hidden");
-}
-
-function renderRandomModalTagPickers() {
-  randomIncludeTagsContainer.innerHTML = "";
-  randomExcludeTagsContainer.innerHTML = "";
-
-  if (includeTagsCountBadge) {
-    includeTagsCountBadge.textContent = randomIncludeTags.size.toString();
-    includeTagsCountBadge.classList.toggle("has-count", randomIncludeTags.size > 0);
-  }
-  if (excludeTagsCountBadge) {
-    excludeTagsCountBadge.textContent = randomExcludeTags.size.toString();
-    excludeTagsCountBadge.classList.toggle("has-count", randomExcludeTags.size > 0);
-  }
-  if (btnClearIncTags) {
-    btnClearIncTags.style.display = randomIncludeTags.size > 0 ? "inline" : "none";
-  }
-  if (btnClearExcTags) {
-    btnClearExcTags.style.display = randomExcludeTags.size > 0 ? "inline" : "none";
-  }
-
-  if (availableProjectTags.length === 0) {
-    const emptySpan1 = document.createElement("span");
-    emptySpan1.className = "panel-hint";
-    emptySpan1.textContent = "Nenhuma tag cadastrada neste projeto.";
-    randomIncludeTagsContainer.appendChild(emptySpan1);
-
-    const emptySpan2 = document.createElement("span");
-    emptySpan2.className = "panel-hint";
-    emptySpan2.textContent = "Nenhuma tag cadastrada neste projeto.";
-    randomExcludeTagsContainer.appendChild(emptySpan2);
     return;
   }
 
-  for (const tag of availableProjectTags) {
-    const colorClass = getTagColorClass(tag);
-    const isInc = randomIncludeTags.has(tag);
-    const isExc = randomExcludeTags.has(tag);
+  if (askConfirm) {
+    const confirmed = await showConfirmDialog({
+      title: "Zerar Rodada do Sorteio",
+      message: `Deseja reiniciar a rodada do sorteador?\n\n${randomPlayedPaths.size} vídeo(s) já foram sorteados nesta rodada e voltarão a estar disponíveis para sorteio.`,
+      confirmText: "Zerar Rodada",
+      cancelText: "Cancelar",
+      type: "info",
+    });
+    if (!confirmed) return;
+  }
 
-    // Pill de inclusão (Obrigatórias)
-    const incBtn = document.createElement("button");
-    incBtn.type = "button";
-    incBtn.className = `selectable-tag-pill ${colorClass} ${isInc ? "include-selected" : ""}`;
-    incBtn.innerHTML = `
-      <span class="sidebar-tag-dot ${colorClass}"></span>
-      <span>${escapeHtml(tag)}</span>
-      ${isInc ? '<span style="font-weight: 700; margin-left: 2px;">✓</span>' : ""}
-    `;
-    incBtn.onclick = () => {
-      if (randomIncludeTags.has(tag)) {
-        randomIncludeTags.delete(tag);
-      } else {
-        randomIncludeTags.add(tag);
-        randomExcludeTags.delete(tag);
-      }
-      saveRandomConfig();
-      updateRandomButtonTooltips();
-      renderRandomModalTagPickers();
-      updateRandomModalMatchingCount();
-    };
-    randomIncludeTagsContainer.appendChild(incBtn);
+  randomPlayedPaths.clear();
+  saveRandomHistory();
+  updateRandomButtonTooltip();
 
-    // Pill de exclusão (Bloqueadas)
-    const excBtn = document.createElement("button");
-    excBtn.type = "button";
-    excBtn.className = `selectable-tag-pill ${colorClass} ${isExc ? "exclude-selected" : ""}`;
-    excBtn.innerHTML = `
-      <span class="sidebar-tag-dot ${colorClass}"></span>
-      <span>${escapeHtml(tag)}</span>
-      ${isExc ? '<span style="font-weight: 700; margin-left: 2px;">✕</span>' : ""}
-    `;
-    excBtn.onclick = () => {
-      if (randomExcludeTags.has(tag)) {
-        randomExcludeTags.delete(tag);
-      } else {
-        randomExcludeTags.add(tag);
-        randomIncludeTags.delete(tag);
-      }
-      saveRandomConfig();
-      updateRandomButtonTooltips();
-      renderRandomModalTagPickers();
-      updateRandomModalMatchingCount();
-    };
-    randomExcludeTagsContainer.appendChild(excBtn);
+  if (askConfirm) {
+    await showAlertDialog("Rodada reiniciada com sucesso! Todos os vídeos podem ser sorteados novamente.", "Sorteador Aleatório");
   }
 }
 
-function getMatchingRandomVideos(): VideoItem[] {
-  const filterWords = randomTitleFilter.trim()
-    ? normalizeSearchText(randomTitleFilter).split(/\s+/).filter(Boolean)
-    : [];
+function updateRandomButtonTooltip() {
+  if (!btnExecuteRandomDirect) return;
+  const visible = getSortedAndFilteredVideos();
+  const unplayed = visible.filter((v) => !randomPlayedPaths.has(v.path));
+  const remaining = unplayed.length === 0 && visible.length > 0 ? visible.length : unplayed.length;
 
-  return allVideos.filter((video) => {
-    if (randomFavMode === "only_fav" && !video.is_favorite) return false;
-    if (randomFavMode === "not_fav" && video.is_favorite) return false;
-
-    if (filterWords.length > 0) {
-      const videoName = normalizeSearchText(video.name);
-      for (const word of filterWords) {
-        if (!videoName.includes(word)) return false;
-      }
-    }
-
-    for (const incTag of randomIncludeTags) {
-      if (!video.tags.includes(incTag)) return false;
-    }
-
-    for (const excTag of randomExcludeTags) {
-      if (video.tags.includes(excTag)) return false;
-    }
-
-    return true;
-  });
+  if (visible.length === 0) {
+    btnExecuteRandomDirect.title = "Nenhum vídeo visível com os filtros atuais da tela (Ctrl+R)";
+  } else {
+    btnExecuteRandomDirect.title = `Sortear vídeo aleatório (${remaining}/${visible.length} restantes nesta rodada sem repetição) [Ctrl+R] • Botão direito para zerar rodada`;
+  }
 }
 
-function updateRandomModalMatchingCount() {
-  const matching = getMatchingRandomVideos();
-  const unplayed = matching.filter((v) => !randomPlayedPaths.has(v.path));
-  const isZero = matching.length === 0;
 
-  if (randomMatchingCount) {
-    randomMatchingCount.textContent = matching.length.toString();
-  }
-  if (randomUnplayedCount) {
-    const remaining = unplayed.length === 0 && matching.length > 0 ? matching.length : unplayed.length;
-    randomUnplayedCount.textContent = remaining.toString();
-  }
-
-  // Atualiza barra de progresso da rodada
-  if (randomCycleProgressBar) {
-    const pct = matching.length > 0 ? (unplayed.length / matching.length) * 100 : 0;
-    randomCycleProgressBar.style.width = `${pct}%`;
-  }
-
-  // Alerta visual no card de status quando 0 vídeos correspondem aos filtros
-  if (randomStatusCard && randomStatusDot) {
-    const headline = document.getElementById("random-status-headline");
-    const subline = document.getElementById("random-status-subline");
-
-    if (isZero) {
-      randomStatusCard.classList.add("warning");
-      randomStatusDot.classList.add("warning");
-      if (headline) headline.innerHTML = '<strong style="color: #f87171;">0</strong> vídeos elegíveis';
-      if (subline) subline.textContent = "Nenhum vídeo encontrado com os filtros atuais.";
-    } else {
-      randomStatusCard.classList.remove("warning");
-      randomStatusDot.classList.remove("warning");
-      if (headline) headline.innerHTML = `<strong id="random-matching-count">${matching.length}</strong> vídeos elegíveis`;
-      if (subline) {
-        if (unplayed.length === 0) {
-          subline.textContent = "Rodada completa! O próximo sorteio reembaralhará todos.";
-        } else {
-          subline.innerHTML = `<span id="random-unplayed-count">${unplayed.length}</span> restantes nesta rodada sem repetição`;
-        }
-      }
-    }
-  }
-
-  if (btnResetRandomCycle) {
-    const playedInMatching = matching.length - unplayed.length;
-    btnResetRandomCycle.disabled = playedInMatching === 0;
-    btnResetRandomCycle.style.opacity = playedInMatching === 0 ? "0.45" : "1";
-    btnResetRandomCycle.style.cursor = playedInMatching === 0 ? "default" : "pointer";
-    btnResetRandomCycle.title = playedInMatching > 0
-      ? `Zerar rodada atual (${playedInMatching} já sorteados) e liberar todos os ${matching.length} vídeos novamente`
-      : "Nenhum vídeo foi sorteado nesta rodada ainda";
-  }
-  btnExecuteRandomPlay.disabled = isZero;
-}
 
 function executeRandomPlay() {
   if (allVideos.length === 0) {
@@ -3769,19 +3478,12 @@ function executeRandomPlay() {
     return;
   }
 
-  const eligible = getMatchingRandomVideos();
+  const eligible = getSortedAndFilteredVideos();
   if (eligible.length === 0) {
-    showConfirmDialog({
-      title: "Nenhum Vídeo Encontrado",
-      message: "Nenhum vídeo corresponde aos filtros configurados no sorteador (favoritos, tags ou palavras).\n\nDeseja abrir a tela de configurações para ajustar ou limpar os filtros?",
-      confirmText: "Abrir Configurações",
-      cancelText: "Fechar",
-      type: "info",
-    }).then((openConfig) => {
-      if (openConfig) {
-        openRandomModal();
-      }
-    });
+    showAlertDialog(
+      "Nenhum vídeo visível na tela com os filtros atuais.\n\nLimpe ou altere a barra de pesquisa ou os filtros do menu lateral (tags, pastas, favoritos) para sortear.",
+      "Nenhum Vídeo Encontrado"
+    );
     return;
   }
 
@@ -3802,10 +3504,7 @@ function executeRandomPlay() {
   // Marca este vídeo como já sorteado nesta rodada
   randomPlayedPaths.add(pickedVideo.path);
   saveRandomHistory();
-  updateRandomButtonTooltips();
-  updateRandomModalMatchingCount();
-
-  closeRandomModal();
+  updateRandomButtonTooltip();
 
   const cardEl = document.querySelector(`.notion-card[data-id="${pickedVideo.id}"]`) as HTMLElement;
   if (cardEl) {
@@ -4122,7 +3821,6 @@ async function saveVideoTags() {
     closeTagsModal();
     renderTagFilters();
     renderGrid();
-    updateRandomModalMatchingCount();
   } catch (err) {
     console.error("Erro ao salvar tags:", err);
   }
@@ -4557,6 +4255,11 @@ window.addEventListener("DOMContentLoaded", () => {
     executeRandomPlay();
   });
 
+  document.getElementById("menu-act-random-reset")?.addEventListener("click", () => {
+    closeAllMenubarDropdowns();
+    resetRandomCycle(true);
+  });
+
   menuActStats?.addEventListener("click", () => {
     closeAllMenubarDropdowns();
     openStatsModal();
@@ -4609,7 +4312,6 @@ window.addEventListener("DOMContentLoaded", () => {
       if (projectManagePasswordModal && !projectManagePasswordModal.classList.contains("hidden")) projectManagePasswordModal.classList.add("hidden");
       if (!batchTagsModal.classList.contains("hidden")) batchTagsModal.classList.add("hidden");
       if (!tagsModal.classList.contains("hidden")) closeTagsModal();
-      if (!randomModal.classList.contains("hidden")) closeRandomModal();
       if (duplicatesModal && !duplicatesModal.classList.contains("hidden")) {
         duplicatesModal.classList.add("hidden");
         return;
@@ -4639,7 +4341,7 @@ window.addEventListener("DOMContentLoaded", () => {
       } else if (e.key === "r" || e.key === "R") {
         e.preventDefault();
         if (e.shiftKey) {
-          openRandomModal();
+          resetRandomCycle(true);
         } else {
           executeRandomPlay();
         }
@@ -4849,7 +4551,6 @@ window.addEventListener("DOMContentLoaded", () => {
         overlay.classList.add("hidden");
         if (overlay.id === "app-dialog-modal") closeAppDialog(false);
         if (overlay.id === "tags-modal") closeTagsModal();
-        if (overlay.id === "random-modal") closeRandomModal();
         if (overlay.id === "quickpick-bar") closeQuickpickProject();
         if (overlay.id === "rename-video-modal") overlay.classList.add("hidden");
         if (overlay.id === "project-password-modal") {
@@ -5150,86 +4851,11 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Modal de Sorteio
+  // Sorteio Aleatório
   btnExecuteRandomDirect?.addEventListener("click", executeRandomPlay);
-  btnOpenRandomConfig?.addEventListener("click", openRandomModal);
-  btnResetRandomConfig?.addEventListener("click", resetRandomConfig);
-  btnResetRandomCycle?.addEventListener("click", resetRandomCycle);
-  btnCloseRandomModal.addEventListener("click", closeRandomModal);
-  btnCancelRandomModal?.addEventListener("click", closeRandomModal);
-  btnExecuteRandomPlay.addEventListener("click", executeRandomPlay);
-
-  tabBtnIncludeTags?.addEventListener("click", () => {
-    tabBtnIncludeTags.classList.add("active");
-    tabBtnExcludeTags?.classList.remove("active");
-    tabPaneInclude?.classList.remove("hidden");
-    tabPaneExclude?.classList.add("hidden");
-  });
-
-  tabBtnExcludeTags?.addEventListener("click", () => {
-    tabBtnExcludeTags.classList.add("active");
-    tabBtnIncludeTags?.classList.remove("active");
-    tabPaneExclude?.classList.remove("hidden");
-    tabPaneInclude?.classList.add("hidden");
-  });
-
-  btnClearIncTags?.addEventListener("click", () => {
-    randomIncludeTags.clear();
-    saveRandomConfig();
-    updateRandomButtonTooltips();
-    renderRandomModalTagPickers();
-    updateRandomModalMatchingCount();
-  });
-
-  btnClearExcTags?.addEventListener("click", () => {
-    randomExcludeTags.clear();
-    saveRandomConfig();
-    updateRandomButtonTooltips();
-    renderRandomModalTagPickers();
-    updateRandomModalMatchingCount();
-  });
-
-  randomTitleInput?.addEventListener("input", () => {
-    randomTitleFilter = randomTitleInput.value;
-    if (btnClearRandomTitle) {
-      btnClearRandomTitle.classList.toggle("hidden", !randomTitleFilter);
-    }
-    saveRandomConfig();
-    updateRandomButtonTooltips();
-    updateRandomModalMatchingCount();
-  });
-
-  btnClearRandomTitle?.addEventListener("click", () => {
-    if (randomTitleInput) {
-      randomTitleInput.value = "";
-      randomTitleFilter = "";
-      btnClearRandomTitle.classList.add("hidden");
-      randomTitleInput.focus();
-      saveRandomConfig();
-      updateRandomButtonTooltips();
-      updateRandomModalMatchingCount();
-    }
-  });
-
-  randomTitleInput?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      executeRandomPlay();
-    }
-  });
-
-  randomFavControl.addEventListener("click", (e) => {
-    const target = (e.target as HTMLElement).closest(".segment-btn") as HTMLButtonElement;
-    if (!target) return;
-    const val = target.dataset.val as FavFilterMode;
-    if (!val) return;
-
-    randomFavMode = val;
-    randomFavControl.querySelectorAll(".segment-btn").forEach((btn) => btn.classList.remove("active"));
-    target.classList.add("active");
-    saveRandomConfig();
-    updateRandomButtonTooltips();
-    updateRandomModalMatchingCount();
+  btnExecuteRandomDirect?.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    resetRandomCycle(true);
   });
 
   ctxRemoveFile?.addEventListener("click", async () => {
@@ -5377,8 +5003,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  loadRandomConfig();
   loadRandomHistory();
-  updateRandomButtonTooltips();
+  updateRandomButtonTooltip();
   refreshProjectsList();
 });
