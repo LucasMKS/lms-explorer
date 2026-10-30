@@ -1,6 +1,6 @@
 [package]
 name = "lms-explorer"
-version = "0.1.5"
+version = "0.1.6"
 description = "A Video Explorer Desktop App"
 authors = ["lucas"]
 edition = "2021"

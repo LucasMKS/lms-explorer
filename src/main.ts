@@ -1430,17 +1430,26 @@ function updateUIIndicators(filteredCount: number) {
   if (currentViewCounter) currentViewCounter.textContent = filteredCount.toString();
 
   if (currentViewTitle) {
+    const parts: string[] = [];
     if (filterSelectedSource === "__loose__") {
-      currentViewTitle.textContent = "Vídeos Avulsos";
+      parts.push("Vídeos Avulsos");
     } else if (filterSelectedSource) {
       const folderName = filterSelectedSource.split(/[\\/]/).filter(Boolean).pop() || filterSelectedSource;
-      currentViewTitle.textContent = `Pasta: ${folderName}`;
-    } else if (filterOnlyFavorites) {
-      currentViewTitle.textContent = "Favoritos";
+      parts.push(`Pasta: ${folderName}`);
+    }
+
+    if (filterOnlyFavorites) {
+      parts.push("Favoritos");
     } else if (filterOnlyUntagged) {
-      currentViewTitle.textContent = "Sem Tags";
-    } else if (selectedFilterTags.size > 0) {
-      currentViewTitle.textContent = `Tag: ${Array.from(selectedFilterTags).join(", ")}`;
+      parts.push("Sem Tags");
+    }
+
+    if (selectedFilterTags.size > 0) {
+      parts.push(`Tag: ${Array.from(selectedFilterTags).join(", ")}`);
+    }
+
+    if (parts.length > 0) {
+      currentViewTitle.textContent = parts.join(" • ");
     } else {
       currentViewTitle.textContent = "Todos os Vídeos";
     }
@@ -3592,7 +3601,6 @@ function renderTagFilters() {
     }
 
     chip.onclick = () => {
-      filterOnlyFavorites = false;
       filterOnlyUntagged = false;
       // Clique esquerdo: alterna apenas entre ativa (incluída) e normal
       if (selectedFilterTags.has(tag)) {
@@ -3608,7 +3616,6 @@ function renderTagFilters() {
     chip.oncontextmenu = (e) => {
       e.preventDefault();
       e.stopPropagation();
-      filterOnlyFavorites = false;
       filterOnlyUntagged = false;
       // Clique direito: alterna diretamente entre negativa (vermelha) e normal
       if (excludedFilterTags.has(tag)) {
@@ -4697,9 +4704,7 @@ window.addEventListener("DOMContentLoaded", () => {
   filterFavBtn?.addEventListener("click", () => {
     filterOnlyFavorites = !filterOnlyFavorites;
     filterOnlyUntagged = false;
-    filterSelectedSource = null;
-    selectedFilterTags.clear();
-    navAllVideos?.classList.toggle("active", !filterOnlyFavorites);
+    navAllVideos?.classList.toggle("active", !filterOnlyFavorites && selectedFilterTags.size === 0 && filterSelectedSource === null);
     filterFavBtn.classList.toggle("active", filterOnlyFavorites);
     navUntaggedVideos?.classList.remove("active");
     renderSidebarFolders();
