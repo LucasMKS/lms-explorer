@@ -343,6 +343,7 @@ const zoomBtns = document.querySelectorAll(".zoom-btn");
 
 // Viewport Principal
 const mainScrollViewport = document.getElementById("main-scroll-container") as HTMLElement;
+const btnScrollTop = document.getElementById("btn-scroll-top") as HTMLButtonElement | null;
 const emptyStateNoProject = document.getElementById("empty-state-no-project") as HTMLDivElement;
 const emptyStateNoFolders = document.getElementById("empty-state-no-folders") as HTMLDivElement;
 const btnCreateFirstProject = document.getElementById("btn-create-first-project") as HTMLButtonElement;
@@ -1965,15 +1966,26 @@ function createVideoCard(video: VideoItem, currentFiltered: VideoItem[]): HTMLEl
   const tagsGroup = document.createElement("div");
   tagsGroup.className = "card-tags-group";
   video.tags.slice(0, 3).forEach((tag) => {
+    const isTagActive = selectedFilterTags.has(tag);
     const pill = document.createElement("span");
-    pill.className = `card-tag-pill ${getTagColorClass(tag)}`;
+    pill.className = `card-tag-pill ${getTagColorClass(tag)} ${isTagActive ? "active" : ""}`;
     pill.textContent = tag;
+    pill.title = isTagActive ? `Tag #${tag} filtrada (clique para desmarcar)` : `Filtrar pela tag #${tag}`;
+    pill.onclick = (e) => {
+      e.stopPropagation();
+      toggleFilterTag(tag);
+    };
     tagsGroup.appendChild(pill);
   });
   if (video.tags.length > 3) {
     const more = document.createElement("span");
     more.className = "card-tag-pill tag-color-gray";
     more.textContent = `+${video.tags.length - 3}`;
+    more.title = "Gerenciar tags do vídeo";
+    more.onclick = (e) => {
+      e.stopPropagation();
+      openTagsModal(video);
+    };
     tagsGroup.appendChild(more);
   }
   propRow.appendChild(tagsGroup);
@@ -2156,15 +2168,26 @@ function createVideoTable(videos: VideoItem[], currentFiltered: VideoItem[]): HT
     const tagsCluster = document.createElement("div");
     tagsCluster.className = "card-tags-group";
     video.tags.slice(0, 3).forEach((tag) => {
+      const isTagActive = selectedFilterTags.has(tag);
       const pill = document.createElement("span");
-      pill.className = `card-tag-pill ${getTagColorClass(tag)}`;
+      pill.className = `card-tag-pill ${getTagColorClass(tag)} ${isTagActive ? "active" : ""}`;
       pill.textContent = tag;
+      pill.title = isTagActive ? `Tag #${tag} filtrada (clique para desmarcar)` : `Filtrar pela tag #${tag}`;
+      pill.onclick = (e) => {
+        e.stopPropagation();
+        toggleFilterTag(tag);
+      };
       tagsCluster.appendChild(pill);
     });
     if (video.tags.length > 3) {
       const more = document.createElement("span");
       more.className = "card-tag-pill tag-color-gray";
       more.textContent = `+${video.tags.length - 3}`;
+      more.title = "Gerenciar tags do vídeo";
+      more.onclick = (e) => {
+        e.stopPropagation();
+        openTagsModal(video);
+      };
       tagsCluster.appendChild(more);
     }
     tdTags.appendChild(tagsCluster);
@@ -3515,7 +3538,11 @@ function executeRandomPlay() {
   saveRandomHistory();
   updateRandomButtonTooltip();
 
-  const cardEl = document.querySelector(`.notion-card[data-id="${pickedVideo.id}"]`) as HTMLElement;
+  // Seleciona o card sorteado (como se o usuário tivesse clicado nele)
+  selectSingleVideo(pickedVideo.id);
+
+  const cardEl = (document.querySelector(`.notion-card[data-id="${pickedVideo.id}"]`) ||
+    document.querySelector(`.notion-table-row[data-id="${pickedVideo.id}"]`)) as HTMLElement | null;
   if (cardEl) {
     cardEl.scrollIntoView({ behavior: "smooth", block: "center" });
     cardEl.classList.add("selected-highlight");
@@ -3530,6 +3557,18 @@ function executeRandomPlay() {
 // ============================================================
 // FILTROS DA TOOLBAR
 // ============================================================
+function toggleFilterTag(tag: string) {
+  filterOnlyUntagged = false;
+  if (selectedFilterTags.has(tag)) {
+    selectedFilterTags.delete(tag);
+  } else {
+    excludedFilterTags.delete(tag);
+    selectedFilterTags.add(tag);
+  }
+  renderTagFilters();
+  renderGrid();
+}
+
 function renderTagFilters() {
   tagFilterList.innerHTML = "";
 
@@ -3601,16 +3640,7 @@ function renderTagFilters() {
     }
 
     chip.onclick = () => {
-      filterOnlyUntagged = false;
-      // Clique esquerdo: alterna apenas entre ativa (incluída) e normal
-      if (selectedFilterTags.has(tag)) {
-        selectedFilterTags.delete(tag);
-      } else {
-        excludedFilterTags.delete(tag);
-        selectedFilterTags.add(tag);
-      }
-      renderTagFilters();
-      renderGrid();
+      toggleFilterTag(tag);
     };
 
     chip.oncontextmenu = (e) => {
@@ -4826,6 +4856,16 @@ window.addEventListener("DOMContentLoaded", () => {
 
   mainScrollViewport.addEventListener("scroll", () => {
     closeContextMenu();
+    if (btnScrollTop) {
+      // Exibe o botão de voltar ao topo quando o usuário rolar pelo menos 28% da altura visível ou 350px
+      const scrollTop = mainScrollViewport.scrollTop;
+      const shouldShow = scrollTop > Math.max(350, mainScrollViewport.clientHeight * 0.28);
+      btnScrollTop.classList.toggle("hidden", !shouldShow);
+    }
+  });
+
+  btnScrollTop?.addEventListener("click", () => {
+    mainScrollViewport.scrollTo({ top: 0, behavior: "smooth" });
   });
 
   mainScrollViewport.addEventListener("click", (e) => {
